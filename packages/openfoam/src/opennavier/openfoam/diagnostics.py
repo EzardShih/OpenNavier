@@ -18,6 +18,10 @@ SOLVER_LOG_PATHS = (
     Path("log.icoFoam"),
     Path("log.pisoFoam"),
     Path("log.pimpleFoam"),
+    Path("logs") / "simpleFoam.log",
+    Path("logs") / "icoFoam.log",
+    Path("logs") / "pisoFoam.log",
+    Path("logs") / "pimpleFoam.log",
 )
 
 

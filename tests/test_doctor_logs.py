@@ -92,6 +92,38 @@ def test_doctor_includes_residual_warnings_from_solver_log(case_tmp_path: Path) 
     assert residual_diagnostic["details"]["fields"] == "p"
 
 
+@pytest.mark.parametrize(
+    "solver_log_name",
+    ["simpleFoam.log", "icoFoam.log", "pisoFoam.log", "pimpleFoam.log"],
+)
+def test_doctor_includes_residual_warnings_from_logs_directory_solver_logs(
+    case_tmp_path: Path, solver_log_name: str
+) -> None:
+    create_valid_case(case_tmp_path)
+    (case_tmp_path / "logs").mkdir()
+    solver_log_path = case_tmp_path / "logs" / solver_log_name
+    solver_log_path.write_text(
+        (
+            "Time = 1\n"
+            "Solving for p, Initial residual = 0.1, Final residual = 0.02, No Iterations 2\n"
+        ),
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(app, ["doctor", str(case_tmp_path), "--format", "json"])
+
+    assert result.exit_code == 0
+    diagnostics = json.loads(result.output)
+    residual_diagnostic = next(
+        diagnostic
+        for diagnostic in diagnostics
+        if diagnostic["code"] == "openfoam.residuals.high_final"
+    )
+    assert residual_diagnostic["status"] == "WARN"
+    assert residual_diagnostic["path"] == str(solver_log_path)
+    assert residual_diagnostic["details"]["fields"] == "p"
+
+
 def test_report_includes_optional_log_diagnostics(case_tmp_path: Path) -> None:
     create_valid_case(case_tmp_path)
     (case_tmp_path / "logs").mkdir()
@@ -112,6 +144,7 @@ def test_report_includes_optional_log_diagnostics(case_tmp_path: Path) -> None:
 
     assert result.exit_code == 0
     content = output_path.read_text(encoding="utf-8")
+    assert "- Warning checks: 2" in content
     assert "openfoam.mesh_quality.warning" in content
     assert "openfoam.residuals.high_final" in content
     assert str(case_tmp_path / "logs" / "checkMesh.log") in content

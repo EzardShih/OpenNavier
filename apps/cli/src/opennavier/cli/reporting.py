@@ -14,6 +14,7 @@ Inspected case: `{{ case_path }}`
 ## Validation Summary
 
 - Passed checks: {{ passed_count }}
+- Warning checks: {{ warning_count }}
 - Failed checks: {{ failed_count }}
 
 ## Checks
@@ -58,6 +59,9 @@ def write_markdown_report(
     failures = [
         diagnostic for diagnostic in diagnostics if diagnostic.status is DiagnosticStatus.FAIL
     ]
+    warnings = [
+        diagnostic for diagnostic in diagnostics if diagnostic.status is DiagnosticStatus.WARN
+    ]
     content = REPORT_TEMPLATE.render(
         generated_at=datetime.now(UTC).isoformat(timespec="seconds"),
         case_path=Path(case_path).resolve(),
@@ -66,6 +70,7 @@ def write_markdown_report(
         passed_count=sum(
             diagnostic.status is DiagnosticStatus.PASS for diagnostic in diagnostics
         ),
+        warning_count=len(warnings),
         failed_count=len(failures),
     )
     output.write_text(content, encoding="utf-8")
