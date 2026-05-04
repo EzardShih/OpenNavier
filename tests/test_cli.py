@@ -206,7 +206,7 @@ def test_report_and_manifest_use_same_warn_diagnostics(
         ),
     ]
 
-    monkeypatch.setattr(main, "validate_case_structure", lambda _: diagnostics)
+    monkeypatch.setattr(main, "collect_case_diagnostics", lambda _: diagnostics)
 
     result = runner.invoke(
         app,
