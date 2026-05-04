@@ -1,0 +1,4 @@
+.tmp/
+.venv/
+.ruff_cache/
+pytest-cache-files-*
