@@ -1,3 +1,4 @@
+import json
 import subprocess
 import sys
 from collections.abc import Generator
@@ -83,6 +84,36 @@ def test_check_returns_failure_for_malformed_required_system_dictionary(
     assert result.exit_code == 1
     assert "FAIL" in result.output
     assert "openfoam.dictionary_header.system_fvSchemes" in result.output
+
+
+def test_check_json_returns_diagnostics_for_valid_case(case_tmp_path: Path) -> None:
+    create_valid_case(case_tmp_path)
+
+    result = runner.invoke(app, ["check", str(case_tmp_path), "--format", "json"])
+
+    assert result.exit_code == 0
+    diagnostics = json.loads(result.output)
+    assert diagnostics
+    assert {diagnostic["status"] for diagnostic in diagnostics} == {"PASS"}
+    assert {"status", "code", "message", "path", "details"} <= set(diagnostics[0])
+
+
+def test_check_json_returns_nonzero_for_invalid_case(case_tmp_path: Path) -> None:
+    result = runner.invoke(app, ["check", str(case_tmp_path), "--format", "json"])
+
+    assert result.exit_code == 1
+    diagnostics = json.loads(result.output)
+    assert any(diagnostic["status"] == "FAIL" for diagnostic in diagnostics)
+    assert diagnostics[0]["code"] == "openfoam.required_directory.0"
+
+
+def test_doctor_json_returns_diagnostics_without_text_summary(case_tmp_path: Path) -> None:
+    result = runner.invoke(app, ["doctor", str(case_tmp_path), "--format", "json"])
+
+    assert result.exit_code == 1
+    diagnostics = json.loads(result.output)
+    assert any(diagnostic["status"] == "FAIL" for diagnostic in diagnostics)
+    assert "Likely issues" not in result.output
 
 
 def test_doctor_returns_nonzero_for_invalid_case(case_tmp_path: Path) -> None:

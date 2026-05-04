@@ -74,6 +74,7 @@ Runs case-structure validation and prints each diagnostic.
 
 ```bash
 uv run opennavier check ./examples/cavity
+uv run opennavier check ./examples/cavity --format json
 ```
 
 Exit codes:
@@ -88,12 +89,17 @@ summary for failed diagnostics.
 
 ```bash
 uv run opennavier doctor ./examples/cavity
+uv run opennavier doctor ./examples/cavity --format json
 ```
 
 Exit codes:
 
 - `0` when no blocking case-structure issue is found
 - `1` when the case structure is incomplete
+
+For `check` and `doctor`, `--format json` prints the diagnostics as a JSON
+array using the stable diagnostic fields: `status`, `code`, `message`, `path`,
+and `details`. The default format remains human-readable text.
 
 ### `opennavier report <case_path> --output report.md`
 
@@ -145,17 +151,19 @@ The tests use small temporary case folders and do not require OpenFOAM.
 Implemented now:
 
 - deterministic case-structure diagnostics
+- JSON diagnostics output for `check` and `doctor`
 - minimal `FoamFile` header checks for required system dictionaries
 - CLI output for `check` and `doctor`
 - Markdown report generation
 - tests for valid and invalid case structures
 - tests for CLI help, success, failure, doctor, and report behavior
+- tests for JSON diagnostics output and exit codes
 
 Not implemented yet:
 
 - OpenFOAM solver execution
-- mesh quality parsing
 - residual parsing
+- mesh quality parsing
 - boundary-condition validation
 - case template generation
 - AI planning or LLM-written dictionaries
