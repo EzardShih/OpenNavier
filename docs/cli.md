@@ -120,6 +120,22 @@ The report includes:
 - reproducibility notes
 - explicit note that no cloud upload occurred
 
+Use `--manifest-output` to also write a reproducibility manifest JSON file:
+
+```bash
+uv run opennavier report ./examples/cavity --output report.md --manifest-output manifest.json
+```
+
+The manifest includes:
+
+- schema version and generation timestamp
+- resolved case path
+- diagnostic counts and diagnostic codes
+- generated report artifact path
+- deterministic flags showing no cloud upload occurred and OpenFOAM was not run
+
+`--manifest-output` must point to a different path than `--output`.
+
 Exit codes:
 
 - `0` when the report is written and all checks pass
@@ -157,9 +173,11 @@ Implemented now:
 - residual parsing
 - CLI output for `check` and `doctor`
 - Markdown report generation
+- reproducibility manifest output for `report --manifest-output`
 - tests for valid and invalid case structures
 - tests for CLI help, success, failure, doctor, and report behavior
 - tests for JSON diagnostics output and exit codes
+- tests for reproducibility manifest output
 - tests for mesh quality and residual log parsing
 
 Not implemented yet:

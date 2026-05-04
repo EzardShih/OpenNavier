@@ -37,7 +37,7 @@ $env:UV_CACHE_DIR='.tmp\uv-cache'; uv run opennavier --help
 | CLI | Typer application entrypoint | Done | Done | `tests/test_cli.py::test_help_shows_core_commands` | Add tests with each new command. |
 | CLI | `opennavier check <case_path>` | Done | Done | `tests/test_cli.py::test_check_returns_success_for_valid_case`; `tests/test_cli.py::test_check_returns_failure_for_invalid_case` | Expand beyond case structure only after new validators are tested. |
 | CLI | `opennavier doctor <case_path>` | Done | Done | `tests/test_cli.py::test_doctor_returns_nonzero_for_invalid_case` | Add specific issue explanations as new diagnostics are introduced. |
-| CLI | `opennavier report <case_path> --output <path>` | Done | Done | `tests/test_cli.py::test_report_writes_markdown_report` | Add manifest or JSON output tests before implementing those formats. |
+| CLI | `opennavier report <case_path> --output <path>` | Done | Done | `tests/test_cli.py::test_report_writes_markdown_report`; `tests/test_manifest.py::test_report_manifest_output_writes_reproducibility_manifest_for_invalid_case` | Keep report and manifest artifact paths distinct. |
 | Core diagnostics | Structured diagnostic result model with `PASS`, `FAIL`, and `WARN` | Done | Covered through consumers | `packages/core/src/opennavier_core/diagnostics.py`; CLI and validator tests | Add direct model tests if validation rules or serialization behavior expands. |
 | Core diagnostics | Failure aggregation helper | Done | Covered through consumers | `opennavier_core.diagnostics.has_failures`; CLI exit-code tests | Keep exit-code tests as the public behavior contract. |
 | OpenFOAM validation | Required case directory checks for `0`, `constant`, and `system` | Done | Done | `tests/test_case_structure.py` | Add more OpenFOAM checks as separate validators. |
@@ -50,7 +50,7 @@ $env:UV_CACHE_DIR='.tmp\uv-cache'; uv run opennavier --help
 | Examples | Reproducible `examples/cavity` case | Not Started | Missing | Planned in `docs/plan.md` | Add fixture-style example after template or init behavior is specified. |
 | CLI | `opennavier init` case/template creation | Not Started | Missing | Planned in `docs/plan.md` | Define external behavior with tests before writing files. |
 | CLI | JSON output for diagnostics | Done | Done | `tests/test_cli.py::test_check_json_returns_diagnostics_for_valid_case`; `tests/test_cli.py::test_doctor_json_returns_diagnostics_without_text_summary` | Keep JSON schema stable when new diagnostics are added. |
-| Reporting | Reproducibility manifest output | Not Started | Missing | Planned in `docs/plan.md` | Define manifest fields and add tests before implementation. |
+| Reporting | Reproducibility manifest output | Done | Done | `packages/core/src/opennavier_core/manifest.py`; `tests/test_manifest.py` | Keep manifest fields deterministic and update docs when the schema changes. |
 | OpenFOAM runner | Local solver execution | Not Started | Missing | Out of current scope in `docs/cli.md` | Start with subprocess wrapper tests using fake commands; mark real OpenFOAM tests as integration. |
 | OpenFOAM runner | Docker fallback execution | Not Started | Missing | Planned in `docs/plan.md` | Add only after native runner behavior is stable. |
 | OpenFOAM parsing | Mesh quality parsing | Done | Done | `tests/test_mesh_quality.py` | Integrate mesh-quality diagnostics into `doctor` and reports after parser behavior stabilizes. |
