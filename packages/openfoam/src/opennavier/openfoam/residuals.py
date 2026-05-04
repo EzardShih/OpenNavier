@@ -6,7 +6,7 @@ from opennavier_core.diagnostics import DiagnosticResult, DiagnosticStatus
 from pydantic import BaseModel
 
 RESIDUAL_PATTERN = re.compile(
-    r"Solving for (?P<field>\w+),\s+"
+    r"Solving for (?P<field>[^,\s]+),\s+"
     r"Initial residual = (?P<initial>[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?),\s+"
     r"Final residual = (?P<final>[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?),\s+"
     r"No Iterations (?P<iterations>\d+)"
@@ -59,8 +59,11 @@ def diagnose_residuals(
             details={},
         )
 
+    latest_records_by_field = {record.field: record for record in residuals}
     high_records = [
-        record for record in residuals if record.final > final_residual_threshold
+        record
+        for record in latest_records_by_field.values()
+        if record.final > final_residual_threshold
     ]
     if high_records:
         fields = ",".join(record.field for record in high_records)

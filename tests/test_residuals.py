@@ -38,6 +38,19 @@ Solving for p, Initial residual = 5e-03, Final residual = 5e-05, No Iterations 2
     assert [record.final for record in records] == [1e-04, 5e-05]
 
 
+def test_parse_residuals_extracts_dotted_field_names() -> None:
+    content = (
+        "PBiCGStab:  Solving for alpha.water, Initial residual = 0.12, "
+        "Final residual = 8e-05, No Iterations 3"
+    )
+
+    records = parse_residuals(content)
+
+    assert records == [
+        ResidualRecord(field="alpha.water", initial=0.12, final=8e-05, iterations=3)
+    ]
+
+
 def test_parse_residuals_ignores_unrelated_log_lines() -> None:
     content = """
 Create time
@@ -72,6 +85,18 @@ def test_diagnose_residuals_warns_when_final_residuals_remain_high() -> None:
     assert diagnostic.status is DiagnosticStatus.WARN
     assert diagnostic.code == "openfoam.residuals.high_final"
     assert diagnostic.details["fields"] == "p"
+
+
+def test_diagnose_residuals_uses_latest_record_per_field() -> None:
+    diagnostic = diagnose_residuals(
+        [
+            ResidualRecord(field="p", initial=0.1, final=0.02, iterations=2),
+            ResidualRecord(field="p", initial=0.01, final=1e-05, iterations=2),
+        ]
+    )
+
+    assert diagnostic.status is DiagnosticStatus.PASS
+    assert diagnostic.code == "openfoam.residuals.convergence"
 
 
 def test_diagnose_residuals_reports_unreadable_log_path() -> None:
