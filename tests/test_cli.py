@@ -7,7 +7,9 @@ from shutil import rmtree
 from uuid import uuid4
 
 import pytest
+from opennavier.cli import main
 from opennavier.cli.main import app
+from opennavier_core.diagnostics import DiagnosticResult, DiagnosticStatus
 from typer.testing import CliRunner
 
 runner = CliRunner()
@@ -155,3 +157,75 @@ def test_report_includes_malformed_system_dictionary_header_diagnostic(
     assert result.exit_code == 1
     content = output_path.read_text(encoding="utf-8")
     assert "openfoam.dictionary_header.system_fvSchemes" in content
+
+
+def test_report_rejects_manifest_output_resolving_to_report_output_without_overwriting(
+    case_tmp_path: Path,
+) -> None:
+    case_path = case_tmp_path / "case"
+    case_path.mkdir()
+    output_path = case_tmp_path / "report.md"
+    output_path.write_text("existing artifact\n", encoding="utf-8")
+
+    result = runner.invoke(
+        app,
+        [
+            "report",
+            str(case_path),
+            "--output",
+            str(output_path),
+            "--manifest-output",
+            str(case_tmp_path / "." / "report.md"),
+        ],
+    )
+
+    assert result.exit_code == 2
+    assert "must be different" in result.output
+    assert output_path.read_text(encoding="utf-8") == "existing artifact\n"
+
+
+def test_report_and_manifest_use_same_warn_diagnostics(
+    case_tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    case_path = case_tmp_path / "case"
+    case_path.mkdir()
+    report_path = case_tmp_path / "report.md"
+    manifest_path = case_tmp_path / "manifest.json"
+    diagnostics = [
+        DiagnosticResult(
+            status=DiagnosticStatus.PASS,
+            code="openfoam.required_directory.system",
+            message="Required directory exists",
+            path=str(case_path / "system"),
+        ),
+        DiagnosticResult(
+            status=DiagnosticStatus.WARN,
+            code="openfoam.collector.warn",
+            message="Collector warning propagated",
+            path=str(case_path),
+        ),
+    ]
+
+    monkeypatch.setattr(main, "validate_case_structure", lambda _: diagnostics)
+
+    result = runner.invoke(
+        app,
+        [
+            "report",
+            str(case_path),
+            "--output",
+            str(report_path),
+            "--manifest-output",
+            str(manifest_path),
+        ],
+    )
+
+    assert result.exit_code == 0
+    report_content = report_path.read_text(encoding="utf-8")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert "openfoam.collector.warn" in report_content
+    assert manifest["diagnostic_codes"] == [
+        "openfoam.required_directory.system",
+        "openfoam.collector.warn",
+    ]
+    assert manifest["diagnostics_summary"]["warnings"] == 1

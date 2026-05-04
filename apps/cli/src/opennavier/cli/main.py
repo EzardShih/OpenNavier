@@ -72,6 +72,9 @@ def report(
     ] = None,
 ) -> None:
     """Generate a deterministic Markdown report for a case inspection."""
+    if manifest_output is not None:
+        _validate_distinct_artifact_paths(output=output, manifest_output=manifest_output)
+
     diagnostics = validate_case_structure(case_path)
     report_path = write_markdown_report(
         case_path=case_path,
@@ -90,6 +93,14 @@ def report(
 
     if has_failures(diagnostics):
         raise typer.Exit(code=1)
+
+
+def _validate_distinct_artifact_paths(*, output: Path, manifest_output: Path) -> None:
+    if output.resolve() == manifest_output.resolve():
+        raise typer.BadParameter(
+            "--manifest-output must be different from --output.",
+            param_hint="--manifest-output",
+        )
 
 
 def _print_diagnostics(
