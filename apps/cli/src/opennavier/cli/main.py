@@ -5,12 +5,33 @@ from typing import Annotated, Literal
 import typer
 from opennavier.cli.reporting import write_markdown_report
 from opennavier.openfoam.case_structure import validate_case_structure
+from opennavier.openfoam.init_case import CasePathNotEmptyError, create_cavity_case
 from opennavier_core.diagnostics import DiagnosticResult, has_failures
 
 app = typer.Typer(
     help="Local-first OpenFOAM automation and diagnostics.",
     no_args_is_help=True,
 )
+init_app = typer.Typer(help="Create deterministic starter OpenFOAM cases.")
+app.add_typer(init_app, name="init")
+
+
+@init_app.command()
+def cavity(
+    case_path: Annotated[Path, typer.Argument(help="Case directory to create.")],
+    force: Annotated[
+        bool,
+        typer.Option("--force", help="Overwrite an existing non-empty case path."),
+    ] = False,
+) -> None:
+    """Create a minimal OpenFOAM lid-driven cavity case."""
+    try:
+        created_path = create_cavity_case(case_path, force=force)
+    except CasePathNotEmptyError as error:
+        typer.echo(str(error))
+        raise typer.Exit(code=1) from error
+
+    typer.echo(f"Created cavity case: {created_path}")
 
 
 @app.command()
