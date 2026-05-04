@@ -9,12 +9,11 @@ class CasePathNotEmptyError(ValueError):
 def create_cavity_case(case_path: Path | str, *, force: bool = False) -> Path:
     root = Path(case_path)
     if root.exists() and not root.is_dir():
-        if not force:
-            raise CasePathNotEmptyError(f"Refusing to overwrite existing path: {root}")
-        root.unlink()
+        raise CasePathNotEmptyError(f"Refusing to overwrite existing path: {root}")
     elif root.exists() and any(root.iterdir()):
         if not force:
             raise CasePathNotEmptyError(f"Refusing to overwrite non-empty path: {root}")
+        _validate_force_target(root)
         rmtree(root)
 
     for directory in ["0", "constant", "system"]:
@@ -24,6 +23,36 @@ def create_cavity_case(case_path: Path | str, *, force: bool = False) -> Path:
         (root / relative_path).write_text(content, encoding="utf-8", newline="\n")
 
     return root
+
+
+def _validate_force_target(root: Path) -> None:
+    resolved_root = root.resolve()
+    if _is_protected_path(resolved_root):
+        raise CasePathNotEmptyError(f"Refusing to force-overwrite protected path: {root}")
+    if not _is_generated_cavity_case(root):
+        raise CasePathNotEmptyError(
+            f"Refusing to force-overwrite unknown non-empty path: {root}"
+        )
+
+
+def _is_protected_path(resolved_root: Path) -> bool:
+    cwd = Path.cwd().resolve()
+    protected_paths = {cwd, *cwd.parents, Path.home().resolve()}
+    if resolved_root.anchor:
+        protected_paths.add(Path(resolved_root.anchor).resolve())
+    return resolved_root in protected_paths
+
+
+def _is_generated_cavity_case(root: Path) -> bool:
+    expected_files = set(CAVITY_TEMPLATE_FILES)
+    observed_files = {path.relative_to(root) for path in root.rglob("*") if path.is_file()}
+    if observed_files != expected_files:
+        return False
+
+    return all(
+        (root / relative_path).read_text(encoding="utf-8") == content
+        for relative_path, content in CAVITY_TEMPLATE_FILES.items()
+    )
 
 
 def _foam_dictionary(*, name: str, class_name: str, location: str, body: str) -> str:
