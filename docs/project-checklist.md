@@ -12,11 +12,11 @@ Last checked: 2026-05-04
 | --- | --- | --- |
 | `.venv\Scripts\python.exe -m pytest` | Done | 8 tests passed. |
 | `.venv\Scripts\python.exe -m ruff check .` | Done | Ruff reported all checks passed. |
-| `uv run pytest` | Blocked | `uv` is not available on PATH in this shell. |
-| `.venv\Scripts\uv.exe run pytest` | Blocked | Direct uv execution fails with the default cache path because `C:\Users\User\AppData\Local\uv\cache` cannot be created. |
-| `$env:UV_CACHE_DIR='.tmp\uv-cache'; .venv\Scripts\uv.exe run pytest` | Done | 8 tests passed with a workspace-local uv cache. |
-| `uv run ruff check .` | Blocked | Same PATH issue as above. |
-| `uv run opennavier --help` | Blocked | Same PATH issue as above. |
+| `uv run pytest` | Blocked | Direct uv execution fails with the default cache path because `C:\Users\User\AppData\Local\uv\cache` cannot be initialized. |
+| `.venv\Scripts\uv.exe run pytest` | Blocked | Same default uv cache permission issue as above. |
+| `$env:UV_CACHE_DIR='.tmp\uv-cache'; uv run pytest` | Done | 8 tests passed with a workspace-local uv cache. |
+| `uv run ruff check .` | Blocked | Same default uv cache permission issue as above. |
+| `uv run opennavier --help` | Blocked | Same default uv cache permission issue as above. |
 
 ## Feature and Test Matrix
 
