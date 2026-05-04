@@ -10,6 +10,8 @@ def create_cavity_case(case_path: Path | str, *, force: bool = False) -> Path:
     root = Path(case_path)
     if root.exists() and not root.is_dir():
         raise CasePathNotEmptyError(f"Refusing to overwrite existing path: {root}")
+    elif root.exists() and force and _is_protected_path(root.resolve()):
+        raise CasePathNotEmptyError(f"Refusing to force-overwrite protected path: {root}")
     elif root.exists() and any(root.iterdir()):
         if not force:
             raise CasePathNotEmptyError(f"Refusing to overwrite non-empty path: {root}")

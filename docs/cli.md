@@ -1,8 +1,9 @@
 # OpenNavier CLI
 
 The OpenNavier CLI is the first usable slice of the local-first OpenFOAM
-automation workflow. It does not run OpenFOAM yet. It inspects an existing case
-directory, reports deterministic diagnostics, and can write a Markdown report.
+automation workflow. It does not run OpenFOAM yet. It can create a deterministic
+starter cavity case, inspect an existing case directory, report deterministic
+diagnostics, and write a Markdown report.
 
 ## Install
 
@@ -68,6 +69,19 @@ the case.
 
 ## Commands
 
+### `opennavier init cavity <case_path>`
+
+Creates a minimal OpenFOAM lid-driven cavity case.
+
+```bash
+uv run opennavier init cavity ./runs/cavity-001
+```
+
+By default, `init cavity` refuses to overwrite existing paths. Use `--force`
+only to replace a previously generated cavity case or an empty target directory.
+Protected paths such as the repository root, current working directory, drive
+root, and home directory are refused.
+
 ### `opennavier check <case_path>`
 
 Runs case-structure validation and prints each diagnostic.
@@ -84,8 +98,9 @@ Exit codes:
 
 ### `opennavier doctor <case_path>`
 
-Runs the same deterministic checks as `check`, then adds a short likely-issues
-summary for failed diagnostics.
+Runs the same deterministic checks as `check`, then includes optional OpenFOAM
+log diagnostics when recognized logs are present. It parses `checkMesh` logs for
+mesh-quality warnings and common solver logs for residual warnings.
 
 ```bash
 uv run opennavier doctor ./examples/cavity
@@ -119,6 +134,7 @@ The report includes:
 - assumptions
 - reproducibility notes
 - explicit note that no cloud upload occurred
+- optional mesh-quality and residual diagnostics when recognized logs are present
 
 Use `--manifest-output` to also write a reproducibility manifest JSON file:
 
@@ -167,10 +183,12 @@ The tests use small temporary case folders and do not require OpenFOAM.
 Implemented now:
 
 - deterministic case-structure diagnostics
+- deterministic `init cavity` case generation with overwrite guards
 - JSON diagnostics output for `check` and `doctor`
 - minimal `FoamFile` header checks for required system dictionaries
 - mesh quality parsing
 - residual parsing
+- optional `checkMesh` and solver log diagnostics in `doctor` and reports
 - CLI output for `check` and `doctor`
 - Markdown report generation
 - reproducibility manifest output for `report --manifest-output`
@@ -179,12 +197,12 @@ Implemented now:
 - tests for JSON diagnostics output and exit codes
 - tests for reproducibility manifest output
 - tests for mesh quality and residual log parsing
+- tests for cavity initialization and optional log diagnostics
 
 Not implemented yet:
 
 - OpenFOAM solver execution
 - boundary-condition validation
-- case template generation
 - AI planning or LLM-written dictionaries
 
 Those features should be added after deterministic validators and tests define
