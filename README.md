@@ -52,6 +52,12 @@ Generate a Markdown report:
 opennavier report ./examples/cavity --output report.md
 ```
 
+Generate the report with a reproducibility manifest:
+
+```bash
+opennavier report ./examples/cavity --output report.md --manifest-output manifest.json
+```
+
 The first validator checks for required OpenFOAM case paths:
 
 - `0`

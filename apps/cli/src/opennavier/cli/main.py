@@ -8,6 +8,7 @@ from opennavier.openfoam.case_structure import validate_case_structure
 from opennavier.openfoam.diagnostics import collect_case_diagnostics
 from opennavier.openfoam.init_case import CasePathNotEmptyError, create_cavity_case
 from opennavier_core.diagnostics import DiagnosticResult, has_failures
+from opennavier_core.manifest import write_reproducibility_manifest
 
 app = typer.Typer(
     help="Local-first OpenFOAM automation and diagnostics.",
@@ -87,8 +88,15 @@ def report(
     output: Annotated[Path, typer.Option("--output", "-o", help="Markdown report path.")] = Path(
         "report.md"
     ),
+    manifest_output: Annotated[
+        Path | None,
+        typer.Option("--manifest-output", help="Reproducibility manifest JSON path."),
+    ] = None,
 ) -> None:
     """Generate a deterministic Markdown report for a case inspection."""
+    if manifest_output is not None:
+        _validate_distinct_artifact_paths(output=output, manifest_output=manifest_output)
+
     diagnostics = collect_case_diagnostics(case_path)
     report_path = write_markdown_report(
         case_path=case_path,
@@ -96,9 +104,25 @@ def report(
         output_path=output,
     )
     typer.echo(f"Wrote report: {report_path}")
+    if manifest_output is not None:
+        manifest_path = write_reproducibility_manifest(
+            case_path=case_path,
+            diagnostics=diagnostics,
+            generated_artifacts=[report_path],
+            output_path=manifest_output,
+        )
+        typer.echo(f"Wrote manifest: {manifest_path}")
 
     if has_failures(diagnostics):
         raise typer.Exit(code=1)
+
+
+def _validate_distinct_artifact_paths(*, output: Path, manifest_output: Path) -> None:
+    if output.resolve() == manifest_output.resolve():
+        raise typer.BadParameter(
+            "--manifest-output must be different from --output.",
+            param_hint="--manifest-output",
+        )
 
 
 def _print_diagnostics(
