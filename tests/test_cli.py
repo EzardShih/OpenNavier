@@ -70,6 +70,21 @@ def test_check_returns_failure_for_invalid_case(case_tmp_path: Path) -> None:
     assert "Missing required OpenFOAM directory: 0" in result.output
 
 
+def test_check_returns_failure_for_malformed_required_system_dictionary(
+    case_tmp_path: Path,
+) -> None:
+    create_valid_case(case_tmp_path)
+    (case_tmp_path / "system" / "fvSchemes").write_text(
+        "ddtSchemes {}\n", encoding="utf-8"
+    )
+
+    result = runner.invoke(app, ["check", str(case_tmp_path)])
+
+    assert result.exit_code == 1
+    assert "FAIL" in result.output
+    assert "openfoam.dictionary_header.system_fvSchemes" in result.output
+
+
 def test_doctor_returns_nonzero_for_invalid_case(case_tmp_path: Path) -> None:
     result = runner.invoke(app, ["doctor", str(case_tmp_path)])
 
@@ -92,3 +107,20 @@ def test_report_writes_markdown_report(case_tmp_path: Path) -> None:
     assert f"Inspected case: `{case_path.resolve()}`" in content
     assert "No cloud upload occurred" in content
     assert "openfoam.required_directory.0" in content
+
+
+def test_report_includes_malformed_system_dictionary_header_diagnostic(
+    case_tmp_path: Path,
+) -> None:
+    case_path = case_tmp_path / "case"
+    create_valid_case(case_path)
+    (case_path / "system" / "fvSchemes").write_text(
+        "divSchemes {}\n", encoding="utf-8"
+    )
+    output_path = case_tmp_path / "report.md"
+
+    result = runner.invoke(app, ["report", str(case_path), "--output", str(output_path)])
+
+    assert result.exit_code == 1
+    content = output_path.read_text(encoding="utf-8")
+    assert "openfoam.dictionary_header.system_fvSchemes" in content

@@ -58,8 +58,13 @@ system/fvSchemes
 system/fvSolution
 ```
 
-The validator only inspects paths. It does not create missing folders, write
-dictionaries, run solvers, upload files, or modify the case.
+For existing required system dictionaries, it also checks that the file contains
+a minimal `FoamFile` header. Missing files are reported by the path check only,
+without an additional dictionary-header diagnostic.
+
+The validator only inspects paths and existing dictionary text. It does not
+create missing folders, write dictionaries, run solvers, upload files, or modify
+the case.
 
 ## Commands
 
@@ -124,6 +129,15 @@ uv run ruff check .
 uv run opennavier --help
 ```
 
+If the default `uv` cache path cannot be initialized, point `UV_CACHE_DIR` at a
+workspace-local directory:
+
+```powershell
+$env:UV_CACHE_DIR='.tmp\uv-cache'; uv run pytest
+$env:UV_CACHE_DIR='.tmp\uv-cache'; uv run ruff check .
+$env:UV_CACHE_DIR='.tmp\uv-cache'; uv run opennavier --help
+```
+
 The tests use small temporary case folders and do not require OpenFOAM.
 
 ## Current Scope
@@ -131,6 +145,7 @@ The tests use small temporary case folders and do not require OpenFOAM.
 Implemented now:
 
 - deterministic case-structure diagnostics
+- minimal `FoamFile` header checks for required system dictionaries
 - CLI output for `check` and `doctor`
 - Markdown report generation
 - tests for valid and invalid case structures

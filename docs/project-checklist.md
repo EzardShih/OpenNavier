@@ -12,11 +12,22 @@ Last checked: 2026-05-04
 | --- | --- | --- |
 | `.venv\Scripts\python.exe -m pytest` | Done | 8 tests passed. |
 | `.venv\Scripts\python.exe -m ruff check .` | Done | Ruff reported all checks passed. |
-| `uv run pytest` | Blocked | Direct uv execution fails with the default cache path because `C:\Users\User\AppData\Local\uv\cache` cannot be initialized. |
+| `uv run pytest` | Blocked | `uv` is installed, but the default cache path `C:\Users\User\AppData\Local\uv\cache` cannot be initialized because access is denied. |
 | `.venv\Scripts\uv.exe run pytest` | Blocked | Same default uv cache permission issue as above. |
-| `$env:UV_CACHE_DIR='.tmp\uv-cache'; uv run pytest` | Done | 8 tests passed with a workspace-local uv cache. |
+| `$env:UV_CACHE_DIR='.tmp\uv-cache'; uv run pytest` | Done | 18 tests passed with a workspace-local uv cache. |
 | `uv run ruff check .` | Blocked | Same default uv cache permission issue as above. |
+| `$env:UV_CACHE_DIR='.tmp\uv-cache'; uv run ruff check .` | Done | Ruff reported all checks passed with a workspace-local uv cache. |
 | `uv run opennavier --help` | Blocked | Same default uv cache permission issue as above. |
+| `$env:UV_CACHE_DIR='.tmp\uv-cache'; uv run opennavier --help` | Done | CLI help rendered successfully with a workspace-local uv cache. |
+
+When direct `uv run ...` commands are blocked by the default cache path, use a
+workspace-local cache:
+
+```powershell
+$env:UV_CACHE_DIR='.tmp\uv-cache'; uv run pytest
+$env:UV_CACHE_DIR='.tmp\uv-cache'; uv run ruff check .
+$env:UV_CACHE_DIR='.tmp\uv-cache'; uv run opennavier --help
+```
 
 ## Feature and Test Matrix
 
@@ -31,6 +42,7 @@ Last checked: 2026-05-04
 | Core diagnostics | Failure aggregation helper | Done | Covered through consumers | `opennavier_core.diagnostics.has_failures`; CLI exit-code tests | Keep exit-code tests as the public behavior contract. |
 | OpenFOAM validation | Required case directory checks for `0`, `constant`, and `system` | Done | Done | `tests/test_case_structure.py` | Add more OpenFOAM checks as separate validators. |
 | OpenFOAM validation | Required `system/controlDict`, `system/fvSchemes`, and `system/fvSolution` checks | Done | Done | `tests/test_case_structure.py` | Add dictionary-content validation separately. |
+| OpenFOAM validation | Minimal `FoamFile` header checks for existing required system dictionaries | Done | Done | `tests/test_case_structure.py`; `tests/test_cli.py` | Add full dictionary parsing only when a concrete validation rule needs it. |
 | OpenFOAM validation | Validation does not create or modify missing case paths | Done | Done | `tests/test_case_structure.py::test_missing_openfoam_case_paths_are_reported_without_creating_them` | Preserve read-only behavior for diagnostic commands. |
 | Reporting | Deterministic Markdown report generation | Done | Done | `apps/cli/src/opennavier/cli/reporting.py`; report CLI test | Add golden-file or snapshot-style coverage if report formatting becomes more complex. |
 | Documentation | README development and CLI usage notes | Done | Not applicable | `README.md`; `docs/cli.md` | Update whenever setup, commands, or scope changes. |

@@ -23,6 +23,15 @@ uv run ruff check .
 uv run opennavier --help
 ```
 
+If `uv` cannot initialize its default cache directory on Windows or in a
+sandboxed environment, use a workspace-local cache:
+
+```powershell
+$env:UV_CACHE_DIR='.tmp\uv-cache'; uv run pytest
+$env:UV_CACHE_DIR='.tmp\uv-cache'; uv run ruff check .
+$env:UV_CACHE_DIR='.tmp\uv-cache'; uv run opennavier --help
+```
+
 ## CLI
 
 Validate a case structure:
@@ -52,4 +61,6 @@ The first validator checks for required OpenFOAM case paths:
 - `system/fvSchemes`
 - `system/fvSolution`
 
-It reports missing paths without modifying the case.
+For existing required system dictionaries, it also checks for a minimal
+`FoamFile` header. It reports missing paths and malformed dictionaries without
+modifying the case.
