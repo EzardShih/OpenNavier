@@ -14,7 +14,7 @@ Last checked: 2026-05-04
 | `.venv\Scripts\python.exe -m ruff check .` | Done | Ruff reported all checks passed. |
 | `uv run pytest` | Blocked | `uv` is installed, but the default cache path `C:\Users\User\AppData\Local\uv\cache` cannot be initialized because access is denied. |
 | `.venv\Scripts\uv.exe run pytest` | Blocked | Same default uv cache permission issue as above. |
-| `$env:UV_CACHE_DIR='.tmp\uv-cache'; uv run pytest` | Done | 18 tests passed with a workspace-local uv cache. |
+| `$env:UV_CACHE_DIR='.tmp\uv-cache'; uv run pytest` | Done | 21 tests passed with a workspace-local uv cache. |
 | `uv run ruff check .` | Blocked | Same default uv cache permission issue as above. |
 | `$env:UV_CACHE_DIR='.tmp\uv-cache'; uv run ruff check .` | Done | Ruff reported all checks passed with a workspace-local uv cache. |
 | `uv run opennavier --help` | Blocked | Same default uv cache permission issue as above. |
@@ -49,7 +49,7 @@ $env:UV_CACHE_DIR='.tmp\uv-cache'; uv run opennavier --help
 | Documentation | Project-management checklist | Done | Not applicable | `docs/project-checklist.md` | Update after each feature lands or validation status changes. |
 | Examples | Reproducible `examples/cavity` case | Not Started | Missing | Planned in `docs/plan.md` | Add fixture-style example after template or init behavior is specified. |
 | CLI | `opennavier init` case/template creation | Not Started | Missing | Planned in `docs/plan.md` | Define external behavior with tests before writing files. |
-| CLI | JSON output for diagnostics | Not Started | Missing | Implied by stable diagnostics contract in `docs/cli.md` | Add CLI contract tests for JSON schema and exit codes. |
+| CLI | JSON output for diagnostics | Done | Done | `tests/test_cli.py::test_check_json_returns_diagnostics_for_valid_case`; `tests/test_cli.py::test_doctor_json_returns_diagnostics_without_text_summary` | Keep JSON schema stable when new diagnostics are added. |
 | Reporting | Reproducibility manifest output | Not Started | Missing | Planned in `docs/plan.md` | Define manifest fields and add tests before implementation. |
 | OpenFOAM runner | Local solver execution | Not Started | Missing | Out of current scope in `docs/cli.md` | Start with subprocess wrapper tests using fake commands; mark real OpenFOAM tests as integration. |
 | OpenFOAM runner | Docker fallback execution | Not Started | Missing | Planned in `docs/plan.md` | Add only after native runner behavior is stable. |
