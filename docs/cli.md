@@ -153,17 +153,18 @@ Implemented now:
 - deterministic case-structure diagnostics
 - JSON diagnostics output for `check` and `doctor`
 - minimal `FoamFile` header checks for required system dictionaries
+- mesh quality parsing
+- residual parsing
 - CLI output for `check` and `doctor`
 - Markdown report generation
 - tests for valid and invalid case structures
 - tests for CLI help, success, failure, doctor, and report behavior
 - tests for JSON diagnostics output and exit codes
+- tests for mesh quality and residual log parsing
 
 Not implemented yet:
 
 - OpenFOAM solver execution
-- residual parsing
-- mesh quality parsing
 - boundary-condition validation
 - case template generation
 - AI planning or LLM-written dictionaries

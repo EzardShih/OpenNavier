@@ -14,7 +14,7 @@ Last checked: 2026-05-04
 | `.venv\Scripts\python.exe -m ruff check .` | Done | Ruff reported all checks passed. |
 | `uv run pytest` | Blocked | `uv` is installed, but the default cache path `C:\Users\User\AppData\Local\uv\cache` cannot be initialized because access is denied. |
 | `.venv\Scripts\uv.exe run pytest` | Blocked | Same default uv cache permission issue as above. |
-| `$env:UV_CACHE_DIR='.tmp\uv-cache'; uv run pytest` | Done | 27 tests passed with a workspace-local uv cache. |
+| `$env:UV_CACHE_DIR='.tmp\uv-cache'; uv run pytest` | Done | 37 tests passed with a workspace-local uv cache. |
 | `uv run ruff check .` | Blocked | Same default uv cache permission issue as above. |
 | `$env:UV_CACHE_DIR='.tmp\uv-cache'; uv run ruff check .` | Done | Ruff reported all checks passed with a workspace-local uv cache. |
 | `uv run opennavier --help` | Blocked | Same default uv cache permission issue as above. |
