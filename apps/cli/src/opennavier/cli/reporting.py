@@ -35,9 +35,10 @@ No failed checks.
 
 ## Assumptions
 
-- This report only validates the deterministic OpenFOAM case structure checks available now.
+- This report validates deterministic OpenFOAM case structure checks.
+- Present optional OpenFOAM logs are parsed for mesh quality and residual diagnostics.
 - OpenFOAM was not executed.
-- Mesh quality, residuals, and boundary-condition consistency were not inspected in this slice.
+- Boundary-condition consistency was not inspected in this slice.
 
 ## Reproducibility
 

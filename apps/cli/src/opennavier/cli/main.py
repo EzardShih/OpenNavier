@@ -5,6 +5,7 @@ from typing import Annotated, Literal
 import typer
 from opennavier.cli.reporting import write_markdown_report
 from opennavier.openfoam.case_structure import validate_case_structure
+from opennavier.openfoam.diagnostics import collect_case_diagnostics
 from opennavier_core.diagnostics import DiagnosticResult, has_failures
 
 app = typer.Typer(
@@ -41,7 +42,7 @@ def doctor(
     ] = "text",
 ) -> None:
     """Inspect a case and summarize likely setup issues."""
-    diagnostics = validate_case_structure(case_path)
+    diagnostics = collect_case_diagnostics(case_path)
     _print_diagnostics(diagnostics, output_format=output_format)
 
     if has_failures(diagnostics):
@@ -67,7 +68,7 @@ def report(
     ),
 ) -> None:
     """Generate a deterministic Markdown report for a case inspection."""
-    diagnostics = validate_case_structure(case_path)
+    diagnostics = collect_case_diagnostics(case_path)
     report_path = write_markdown_report(
         case_path=case_path,
         diagnostics=diagnostics,
