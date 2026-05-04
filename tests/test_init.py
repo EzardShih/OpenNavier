@@ -82,6 +82,19 @@ def test_init_cavity_refuses_to_overwrite_non_empty_path(case_tmp_path: Path) ->
     assert not (case_path / "system").exists()
 
 
+def test_init_cavity_refuses_to_overwrite_existing_file_path(
+    case_tmp_path: Path,
+) -> None:
+    case_path = case_tmp_path / "cavity"
+    case_path.write_text("keep me\n", encoding="utf-8")
+
+    result = runner.invoke(app, ["init", "cavity", str(case_path)])
+
+    assert result.exit_code == 1
+    assert "Refusing to overwrite existing path" in result.output
+    assert case_path.read_text(encoding="utf-8") == "keep me\n"
+
+
 def test_init_cavity_force_overwrites_non_empty_path(case_tmp_path: Path) -> None:
     case_path = case_tmp_path / "cavity"
     case_path.mkdir()
@@ -92,4 +105,15 @@ def test_init_cavity_force_overwrites_non_empty_path(case_tmp_path: Path) -> Non
 
     assert result.exit_code == 0
     assert not existing_file.exists()
+    assert (case_path / "system" / "controlDict").is_file()
+
+
+def test_init_cavity_force_replaces_existing_file_path(case_tmp_path: Path) -> None:
+    case_path = case_tmp_path / "cavity"
+    case_path.write_text("replace me\n", encoding="utf-8")
+
+    result = runner.invoke(app, ["init", "cavity", str(case_path), "--force"])
+
+    assert result.exit_code == 0
+    assert case_path.is_dir()
     assert (case_path / "system" / "controlDict").is_file()

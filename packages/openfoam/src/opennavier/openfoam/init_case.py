@@ -8,14 +8,14 @@ class CasePathNotEmptyError(ValueError):
 
 def create_cavity_case(case_path: Path | str, *, force: bool = False) -> Path:
     root = Path(case_path)
-    if root.exists() and any(root.iterdir()):
-        if not force:
-            raise CasePathNotEmptyError(f"Refusing to overwrite non-empty path: {root}")
-        rmtree(root)
-    elif root.exists() and not root.is_dir():
+    if root.exists() and not root.is_dir():
         if not force:
             raise CasePathNotEmptyError(f"Refusing to overwrite existing path: {root}")
         root.unlink()
+    elif root.exists() and any(root.iterdir()):
+        if not force:
+            raise CasePathNotEmptyError(f"Refusing to overwrite non-empty path: {root}")
+        rmtree(root)
 
     for directory in ["0", "constant", "system"]:
         (root / directory).mkdir(parents=True, exist_ok=True)
