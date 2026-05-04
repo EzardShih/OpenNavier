@@ -14,7 +14,7 @@ Last checked: 2026-05-04
 | `.venv\Scripts\python.exe -m ruff check .` | Done | Ruff reported all checks passed. |
 | `uv run pytest` | Blocked | `uv` is installed, but the default cache path `C:\Users\User\AppData\Local\uv\cache` cannot be initialized because access is denied. |
 | `.venv\Scripts\uv.exe run pytest` | Blocked | Same default uv cache permission issue as above. |
-| `$env:UV_CACHE_DIR='.tmp\uv-cache'; uv run pytest` | Done | 25 tests passed with a workspace-local uv cache. |
+| `$env:UV_CACHE_DIR='.tmp\uv-cache'; uv run pytest` | Done | 27 tests passed with a workspace-local uv cache. |
 | `uv run ruff check .` | Blocked | Same default uv cache permission issue as above. |
 | `$env:UV_CACHE_DIR='.tmp\uv-cache'; uv run ruff check .` | Done | Ruff reported all checks passed with a workspace-local uv cache. |
 | `uv run opennavier --help` | Blocked | Same default uv cache permission issue as above. |
@@ -54,7 +54,7 @@ $env:UV_CACHE_DIR='.tmp\uv-cache'; uv run opennavier --help
 | OpenFOAM runner | Local solver execution | Not Started | Missing | Out of current scope in `docs/cli.md` | Start with subprocess wrapper tests using fake commands; mark real OpenFOAM tests as integration. |
 | OpenFOAM runner | Docker fallback execution | Not Started | Missing | Planned in `docs/plan.md` | Add only after native runner behavior is stable. |
 | OpenFOAM parsing | Mesh quality parsing | Done | Done | `tests/test_mesh_quality.py` | Integrate mesh-quality diagnostics into `doctor` and reports after parser behavior stabilizes. |
-| OpenFOAM parsing | Residual parsing | Not Started | Missing | Planned in `docs/plan.md`; listed as not implemented in `docs/cli.md` | Use captured solver logs for deterministic parser tests. |
+| OpenFOAM parsing | Residual parsing | Done | Done | `tests/test_residuals.py` | Integrate residual diagnostics into `doctor` and reports after parser behavior stabilizes. |
 | OpenFOAM validation | Boundary-condition validation | Not Started | Missing | Planned in `docs/plan.md`; listed as not implemented in `docs/cli.md` | Define supported boundary checks before implementation. |
 | OpenFOAM templates | Case template generation | Not Started | Missing | Planned in `docs/plan.md`; listed as not implemented in `docs/cli.md` | Add tests for generated file tree and dictionary contents first. |
 | Gmsh adapter | Mesh generation adapter | Not Started | Missing | Planned for a later phase in `docs/plan.md` | Delay until case diagnostics and templates are stable. |
