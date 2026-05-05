@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from opennavier.openfoam.boundary_conditions import diagnose_boundary_conditions
 from opennavier.openfoam.case_structure import validate_case_structure
 from opennavier.openfoam.mesh_quality import diagnose_mesh_quality, parse_check_mesh
 from opennavier.openfoam.residuals import diagnose_residuals
@@ -30,6 +31,7 @@ def collect_case_diagnostics(case_path: Path | str) -> list[DiagnosticResult]:
     collector = DiagnosticCollector(
         (
             lambda: validate_case_structure(root),
+            lambda: diagnose_boundary_conditions(root),
             lambda: _collect_check_mesh_diagnostics(root),
             lambda: _collect_solver_log_diagnostics(root),
         )

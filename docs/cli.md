@@ -1,9 +1,10 @@
 # OpenNavier CLI
 
 The OpenNavier CLI is the first usable slice of the local-first OpenFOAM
-automation workflow. It does not run OpenFOAM yet. It can create a deterministic
-starter cavity case, inspect an existing case directory, report deterministic
-diagnostics, and write a Markdown report.
+automation workflow. It can create a deterministic starter cavity case, inspect
+an existing case directory, report deterministic diagnostics, and write a
+Markdown report. The OpenFOAM package also includes a tested local subprocess
+runner API; a CLI command for solver execution is not wired yet.
 
 ## Install
 
@@ -63,6 +64,11 @@ For existing required system dictionaries, it also checks that the file contains
 a minimal `FoamFile` header. Missing files are reported by the path check only,
 without an additional dictionary-header diagnostic.
 
+`doctor` also validates cavity-style boundary conditions when
+`system/blockMeshDict`, `0/U`, and `0/p` are present. It compares patch names in
+the mesh boundary section with the field `boundaryField` patches and reports
+mismatches without modifying the case.
+
 The validator only inspects paths and existing dictionary text. It does not
 create missing folders, write dictionaries, run solvers, upload files, or modify
 the case.
@@ -98,9 +104,10 @@ Exit codes:
 
 ### `opennavier doctor <case_path>`
 
-Runs the same deterministic checks as `check`, then includes optional OpenFOAM
-log diagnostics when recognized logs are present. It parses `checkMesh` logs for
-mesh-quality warnings and common solver logs for residual warnings.
+Runs the same deterministic checks as `check`, then includes boundary-condition
+validation and optional OpenFOAM log diagnostics when recognized logs are
+present. It parses `checkMesh` logs for mesh-quality warnings and common solver
+logs for residual warnings.
 
 ```bash
 uv run opennavier doctor ./examples/cavity
@@ -186,23 +193,27 @@ Implemented now:
 - deterministic `init cavity` case generation with overwrite guards
 - JSON diagnostics output for `check` and `doctor`
 - minimal `FoamFile` header checks for required system dictionaries
+- cavity-style boundary-condition validation in `doctor`
 - mesh quality parsing
 - residual parsing
 - optional `checkMesh` and solver log diagnostics in `doctor` and reports
+- local subprocess runner API with deterministic fake-command tests
 - CLI output for `check` and `doctor`
 - Markdown report generation
 - reproducibility manifest output for `report --manifest-output`
+- committed `examples/cavity` case matching the deterministic template
 - tests for valid and invalid case structures
 - tests for CLI help, success, failure, doctor, and report behavior
 - tests for JSON diagnostics output and exit codes
 - tests for reproducibility manifest output
 - tests for mesh quality and residual log parsing
-- tests for cavity initialization and optional log diagnostics
+- tests for cavity initialization, committed examples, runner behavior,
+  boundary validation, and optional log diagnostics
 
 Not implemented yet:
 
-- OpenFOAM solver execution
-- boundary-condition validation
+- CLI command for OpenFOAM solver execution
+- Docker fallback execution
 - AI planning or LLM-written dictionaries
 
 Those features should be added after deterministic validators and tests define

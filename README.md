@@ -1,8 +1,9 @@
 # OpenNavier
 
 OpenNavier is a local-first OpenFOAM automation and diagnostics CLI. The initial
-slice focuses on deterministic starter cases, case inspection, and Markdown
-reports before any solver execution, desktop UI, or AI planning is added.
+slice focuses on deterministic starter cases, case inspection, Markdown reports,
+and tested local runner building blocks before a full solver CLI workflow,
+desktop UI, or AI planning is added.
 
 Your geometry, mesh, logs, and results stay on your machine by default. The CLI
 does not upload case data to a cloud service.
@@ -77,5 +78,7 @@ For existing required system dictionaries, it also checks for a minimal
 `FoamFile` header. It reports missing paths and malformed dictionaries without
 modifying the case.
 
-`doctor` and `report` also parse recognized optional `checkMesh` and solver logs
-when they are present, without requiring OpenFOAM to be installed.
+`doctor` also validates cavity-style boundary conditions when the relevant
+dictionaries are present. `doctor` and `report` parse recognized optional
+`checkMesh` and solver logs when they are present, without requiring OpenFOAM to
+be installed.
