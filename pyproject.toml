@@ -6,6 +6,8 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "opennavier-cli",
+    "opennavier-freecad",
+    "opennavier-gmsh",
 ]
 
 [dependency-groups]
@@ -21,12 +23,16 @@ package = false
 members = [
     "apps/cli",
     "packages/core",
+    "packages/freecad",
+    "packages/gmsh",
     "packages/openfoam",
 ]
 
 [tool.uv.sources]
 opennavier-cli = { workspace = true }
 opennavier-core = { workspace = true }
+opennavier-freecad = { workspace = true }
+opennavier-gmsh = { workspace = true }
 opennavier-openfoam = { workspace = true }
 
 [tool.pytest.ini_options]

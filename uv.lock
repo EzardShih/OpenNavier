@@ -7,6 +7,8 @@ members = [
     "opennavier",
     "opennavier-cli",
     "opennavier-core",
+    "opennavier-freecad",
+    "opennavier-gmsh",
     "opennavier-openfoam",
 ]
 
@@ -171,6 +173,8 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "opennavier-cli" },
+    { name = "opennavier-freecad" },
+    { name = "opennavier-gmsh" },
 ]
 
 [package.dev-dependencies]
@@ -180,7 +184,11 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "opennavier-cli", editable = "apps/cli" }]
+requires-dist = [
+    { name = "opennavier-cli", editable = "apps/cli" },
+    { name = "opennavier-freecad", editable = "packages/freecad" },
+    { name = "opennavier-gmsh", editable = "packages/gmsh" },
+]
 
 [package.metadata.requires-dev]
 dev = [
@@ -217,6 +225,16 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [{ name = "pydantic", specifier = ">=2.7.0" }]
+
+[[package]]
+name = "opennavier-freecad"
+version = "0.1.0"
+source = { editable = "packages/freecad" }
+
+[[package]]
+name = "opennavier-gmsh"
+version = "0.1.0"
+source = { editable = "packages/gmsh" }
 
 [[package]]
 name = "opennavier-openfoam"
