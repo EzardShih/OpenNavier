@@ -300,6 +300,12 @@ Most AI engineering products fail because they generate plausible-looking files 
 **Timeline:** Week 3–4
 **Goal:** Natural-language interface, but only within known templates.
 
+The concrete implementation contract for the "Pencil for simulation" direction
+is documented in [`simulation-mcp-canvas.md`](simulation-mcp-canvas.md). It
+defines the MCP canvas as the agent-access layer over the deterministic CLI and
+package APIs, with repo-native `simulation.onv.json` manifests and validated
+tools instead of free-form dictionary edits.
+
 ### Build
 
 ```text

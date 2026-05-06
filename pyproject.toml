@@ -8,6 +8,7 @@ dependencies = [
     "opennavier-cli",
     "opennavier-freecad",
     "opennavier-gmsh",
+    "opennavier-mcp",
     "opennavier-paraview",
 ]
 
@@ -26,6 +27,7 @@ members = [
     "packages/core",
     "packages/freecad",
     "packages/gmsh",
+    "packages/mcp",
     "packages/openfoam",
     "packages/paraview",
 ]
@@ -35,6 +37,7 @@ opennavier-cli = { workspace = true }
 opennavier-core = { workspace = true }
 opennavier-freecad = { workspace = true }
 opennavier-gmsh = { workspace = true }
+opennavier-mcp = { workspace = true }
 opennavier-openfoam = { workspace = true }
 opennavier-paraview = { workspace = true }
 

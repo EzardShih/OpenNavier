@@ -10,16 +10,16 @@ Last checked: 2026-05-06
 
 | Command | Status | Notes |
 | --- | --- | --- |
-| `.venv\Scripts\python.exe -m pytest` | Not rechecked | Direct `uv run pytest` succeeded in this pass. |
-| `.venv\Scripts\python.exe -m ruff check .` | Not rechecked | Direct `uv run ruff check .` succeeded in this pass. |
-| `uv run pytest` | Done | 122 tests passed. |
-| `.venv\Scripts\uv.exe run pytest` | Blocked | Not rechecked in this pass. |
-| `$env:UV_CACHE_DIR='.tmp\uv-cache'; uv run pytest` | Not rechecked | Direct `uv run pytest` succeeded in this pass. |
-| `uv run ruff check .` | Done | Ruff reported all checks passed. |
-| `$env:UV_CACHE_DIR='.tmp\uv-cache'; uv run ruff check .` | Not rechecked | Direct `uv run ruff check .` succeeded in this pass. |
-| `uv lock --check` | Done | Lock file is current. |
-| `uv run opennavier --help` | Done | CLI help rendered successfully. |
-| `$env:UV_CACHE_DIR='.tmp\uv-cache'; uv run opennavier --help` | Not rechecked | Direct `uv run opennavier --help` succeeded in this pass. |
+| `.venv\Scripts\python.exe -m pytest` | Not rechecked | Superseded by workspace-local `uv run pytest` validation. |
+| `.venv\Scripts\python.exe -m ruff check .` | Not rechecked | Superseded by workspace-local `uv run ruff check .` validation. |
+| `uv run pytest` | Not rechecked | Use a workspace-local cache in this environment. |
+| `.venv\Scripts\uv.exe run pytest` | Not rechecked | Superseded by workspace-local `uv run pytest` validation. |
+| `$env:UV_CACHE_DIR='.tmp\uv-cache'; uv run pytest` | Done | 149 tests passed. |
+| `uv run ruff check .` | Not rechecked | Use a workspace-local cache in this environment. |
+| `$env:UV_CACHE_DIR='.tmp\uv-cache'; uv run ruff check .` | Done | Ruff reported all checks passed. |
+| `$env:UV_CACHE_DIR='.tmp\uv-cache'; uv lock --check` | Done | Lock file is current. |
+| `uv run opennavier --help` | Not rechecked | Use a workspace-local cache in this environment. |
+| `$env:UV_CACHE_DIR='.tmp\uv-cache'; uv run opennavier --help` | Done | CLI help rendered successfully. |
 
 When direct `uv run ...` commands are blocked by the default cache path, use a
 workspace-local cache:
@@ -34,7 +34,7 @@ $env:UV_CACHE_DIR='.tmp\uv-cache'; uv run opennavier --help
 
 | Area | Feature or behavior | Feature status | Test status | Evidence | Next action |
 | --- | --- | --- | --- | --- | --- |
-| Repository | Python workspace with CLI, core, and OpenFOAM packages | Done | Done | `pyproject.toml`; `.venv\Scripts\python.exe -m pytest` | Keep package boundaries stable as features are added. |
+| Repository | Python workspace with CLI, core, OpenFOAM, ParaView, and MCP packages | Done | Done | `pyproject.toml`; `$env:UV_CACHE_DIR='.tmp\uv-cache'; uv run pytest` | Keep package boundaries stable as features are added. |
 | CLI | Typer application entrypoint | Done | Done | `tests/test_cli.py::test_help_shows_core_commands` | Add tests with each new command. |
 | CLI | `opennavier check <case_path>` | Done | Done | `tests/test_cli.py::test_check_returns_success_for_valid_case`; `tests/test_cli.py::test_check_returns_failure_for_invalid_case` | Expand beyond case structure only after new validators are tested. |
 | CLI | `opennavier doctor <case_path>` | Done | Done | `tests/test_cli.py::test_doctor_returns_nonzero_for_invalid_case`; `tests/test_doctor_logs.py` | Add more solver log patterns only after parser behavior is tested. |
@@ -46,8 +46,9 @@ $env:UV_CACHE_DIR='.tmp\uv-cache'; uv run opennavier --help
 | OpenFOAM validation | Minimal `FoamFile` header checks for existing required system dictionaries | Done | Done | `tests/test_case_structure.py`; `tests/test_cli.py` | Add full dictionary parsing only when a concrete validation rule needs it. |
 | OpenFOAM validation | Validation does not create or modify missing case paths | Done | Done | `tests/test_case_structure.py::test_missing_openfoam_case_paths_are_reported_without_creating_them` | Preserve read-only behavior for diagnostic commands. |
 | Reporting | Deterministic Markdown report generation | Done | Done | `apps/cli/src/opennavier/cli/reporting.py`; report CLI test | Add golden-file or snapshot-style coverage if report formatting becomes more complex. |
-| Documentation | README development and CLI usage notes | Done | Not applicable | `README.md`; `docs/cli.md` | Update whenever setup, commands, or scope changes. |
+| Documentation | README development, CLI, and MCP usage notes | Done | Not applicable | `README.md`; `docs/cli.md` | Update whenever setup, commands, or scope changes. |
 | Documentation | Project-management checklist | Done | Not applicable | `docs/project-checklist.md` | Update after each feature lands or validation status changes. |
+| Documentation | MCP simulation canvas design | Done | Not applicable | `docs/simulation-mcp-canvas.md` | Use as the implementation contract for the MCP package. |
 | Examples | Reproducible `examples/cavity` case | Done | Done | `examples/cavity`; `tests/test_examples.py::test_committed_cavity_example_matches_template_and_validates_read_only` | Keep committed examples exact matches for deterministic templates and free of runtime artifacts. |
 | CLI | `opennavier init cavity <case_path>` case creation | Done | Done | `tests/test_init.py` | Add more templates only after each command's generated file tree and overwrite behavior are tested. |
 | CLI | JSON output for diagnostics | Done | Done | `tests/test_cli.py::test_check_json_returns_diagnostics_for_valid_case`; `tests/test_cli.py::test_doctor_json_returns_diagnostics_without_text_summary` | Keep JSON schema stable when new diagnostics are added. |
@@ -63,6 +64,12 @@ $env:UV_CACHE_DIR='.tmp\uv-cache'; uv run opennavier --help
 | FreeCAD adapter | Parametric geometry scripting adapter | Done | Done | `packages/freecad/src/opennavier/freecad/adapter.py`; `tests/test_freecad_adapter.py` | Add real FreeCAD integration tests only when the executable is an explicit test dependency. |
 | ParaView adapter | Batch post-processing and screenshots | Done | Done | `packages/paraview/src/opennavier/paraview/adapter.py`; `tests/test_paraview_adapter.py` | Add real ParaView integration tests only when the executable is an explicit test dependency. |
 | Studio | Initial local desktop UI scaffold | Done | Done | `apps/studio`; `tests/test_studio_scaffold.py` | Expand from scaffold to runtime UI workflows after CLI usage validates the interaction model. |
+| MCP | MCP server package | Done | Done | `packages/mcp/pyproject.toml`; `packages/mcp/src/opennavier/mcp/server.py`; `tests/test_mcp_server.py` | Keep the MCP layer thin over deterministic package APIs. |
+| MCP | MCP workspace inspection tool | Done | Done | `packages/mcp/src/opennavier/mcp/workspace_tools.py`; `tests/test_mcp_workspace_inspect.py` | Add manifest mutations only after behavior is specified with tests. |
+| MCP | MCP workspace path safety | Done | Done | `packages/mcp/src/opennavier/mcp/paths.py`; `tests/test_mcp_paths.py` | Keep every tool scoped to explicit workspace roots. |
+| MCP | MCP spec validation tool | Done | Done | `packages/mcp/src/opennavier/mcp/spec_tools.py`; `tests/test_mcp_spec_validate.py` | Add spec read/write and physical-bounds tools only after tests. |
+| MCP | MCP cavity case initialization and structure validation tools | Done | Done | `packages/mcp/src/opennavier/mcp/case_init_tools.py`; `packages/mcp/src/opennavier/mcp/case_validation_tools.py`; `tests/test_mcp_case_init_cavity.py`; `tests/test_mcp_case_validate_structure.py` | Add duct and pipe init tools only after templates are specified. |
+| MCP | MCP residual diagnostics tool | Done | Done | `packages/mcp/src/opennavier/mcp/diagnostics_tools.py`; `tests/test_mcp_diagnostics_residuals.py` | Expose mesh-quality and run-all diagnostics through tests before adding solver execution tools. |
 | AI planning | Pydantic simulation specs from LLM output | Done | Done | `packages/core/src/opennavier_core/simulation_spec.py`; `tests/test_simulation_specs.py` | Keep specs as validated intent and add deterministic planner wiring only after external behavior is tested. |
 | AI planning | LLM-written OpenFOAM dictionaries | Out of Scope | Not applicable | `docs/plan.md` says LLM should not directly write OpenFOAM files freely in v1. | Preserve deterministic dictionary generation and validation instead. |
 

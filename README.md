@@ -37,6 +37,25 @@ $env:UV_CACHE_DIR='.tmp\uv-cache'; uv run ruff check .
 $env:UV_CACHE_DIR='.tmp\uv-cache'; uv run opennavier --help
 ```
 
+## MCP server
+
+OpenNavier also exposes a local MCP stdio server for IDE agents:
+
+```bash
+uv run opennavier-mcp
+```
+
+The first MCP tool surface is deterministic and file-oriented:
+
+- `workspace_inspect`
+- `spec_validate`
+- `case_init_cavity`
+- `case_validate_structure`
+- `diagnostics_residuals`
+
+Tools operate inside an explicit workspace root and use the same validated core
+and OpenFOAM package APIs as the CLI.
+
 ## CLI
 
 Create a starter lid-driven cavity case:
