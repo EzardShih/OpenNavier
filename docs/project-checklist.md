@@ -6,13 +6,13 @@ reasonable, and has current validation evidence.
 
 ## Validation Status
 
-Last checked: 2026-05-05
+Last checked: 2026-05-06
 
 | Command | Status | Notes |
 | --- | --- | --- |
-| `.venv\Scripts\python.exe -m pytest` | Done | 71 tests passed in an earlier validation pass. |
-| `.venv\Scripts\python.exe -m ruff check .` | Done | Ruff reported all checks passed. |
-| `uv run pytest` | Done | 105 tests passed. |
+| `.venv\Scripts\python.exe -m pytest` | Not rechecked | Direct `uv run pytest` succeeded in this pass. |
+| `.venv\Scripts\python.exe -m ruff check .` | Not rechecked | Direct `uv run ruff check .` succeeded in this pass. |
+| `uv run pytest` | Done | 122 tests passed. |
 | `.venv\Scripts\uv.exe run pytest` | Blocked | Not rechecked in this pass. |
 | `$env:UV_CACHE_DIR='.tmp\uv-cache'; uv run pytest` | Not rechecked | Direct `uv run pytest` succeeded in this pass. |
 | `uv run ruff check .` | Done | Ruff reported all checks passed. |
@@ -53,7 +53,7 @@ $env:UV_CACHE_DIR='.tmp\uv-cache'; uv run opennavier --help
 | CLI | JSON output for diagnostics | Done | Done | `tests/test_cli.py::test_check_json_returns_diagnostics_for_valid_case`; `tests/test_cli.py::test_doctor_json_returns_diagnostics_without_text_summary` | Keep JSON schema stable when new diagnostics are added. |
 | Reporting | Reproducibility manifest output | Done | Done | `packages/core/src/opennavier_core/manifest.py`; `tests/test_manifest.py` | Keep manifest fields deterministic and update docs when the schema changes. |
 | OpenFOAM runner | Local solver execution | Done | Done | `packages/openfoam/src/opennavier/openfoam/runner.py`; `tests/test_runner.py` | Add CLI wiring or real OpenFOAM integration tests only after the subprocess wrapper API is consumed. |
-| OpenFOAM runner | Docker fallback execution | Not Started | Missing | Planned in `docs/plan.md` | Add only after native runner behavior is stable. |
+| OpenFOAM runner | Docker fallback execution | Done | Done | `packages/openfoam/src/opennavier/openfoam/runner.py`; `tests/test_runner.py::test_run_docker_solver_mounts_case_sets_workdir_appends_solver_and_writes_log` | Wire into CLI only after runner-selection behavior is tested. |
 | OpenFOAM diagnostics | Optional `checkMesh` and solver log diagnostics in `doctor` and reports | Done | Done | `tests/test_doctor_logs.py` | Keep optional logs non-blocking when absent and add new log locations through regression tests. |
 | OpenFOAM parsing | Mesh quality parsing | Done | Done | `tests/test_mesh_quality.py`; `tests/test_doctor_logs.py::test_doctor_includes_mesh_warnings_from_check_mesh_log` | Expand thresholds only with deterministic fixtures. |
 | OpenFOAM parsing | Residual parsing | Done | Done | `tests/test_residuals.py`; `tests/test_doctor_logs.py::test_doctor_includes_residual_warnings_from_solver_log` | Add solver variants only with captured-log fixtures. |
@@ -61,8 +61,8 @@ $env:UV_CACHE_DIR='.tmp\uv-cache'; uv run opennavier --help
 | OpenFOAM templates | Deterministic lid-driven cavity case template generation | Done | Done | `packages/openfoam/src/opennavier/openfoam/init_case.py`; `tests/test_init.py` | Add templates for pipe or duct cases only after generated dictionaries and overwrite guards are specified in tests. |
 | Gmsh adapter | Mesh generation adapter | Done | Done | `packages/gmsh/src/opennavier/gmsh/adapter.py`; `tests/test_gmsh_adapter.py` | Add real Gmsh integration tests only when the executable is an explicit test dependency. |
 | FreeCAD adapter | Parametric geometry scripting adapter | Done | Done | `packages/freecad/src/opennavier/freecad/adapter.py`; `tests/test_freecad_adapter.py` | Add real FreeCAD integration tests only when the executable is an explicit test dependency. |
-| ParaView adapter | Batch post-processing and screenshots | Not Started | Missing | Planned for a later phase in `docs/plan.md` | Delay until solver logs and result layout are available. |
-| Studio | Desktop UI | Not Started | Missing | Planned for later in `docs/plan.md` | Start only after CLI usage validates workflows. |
+| ParaView adapter | Batch post-processing and screenshots | Done | Done | `packages/paraview/src/opennavier/paraview/adapter.py`; `tests/test_paraview_adapter.py` | Add real ParaView integration tests only when the executable is an explicit test dependency. |
+| Studio | Initial local desktop UI scaffold | Done | Done | `apps/studio`; `tests/test_studio_scaffold.py` | Expand from scaffold to runtime UI workflows after CLI usage validates the interaction model. |
 | AI planning | Pydantic simulation specs from LLM output | Done | Done | `packages/core/src/opennavier_core/simulation_spec.py`; `tests/test_simulation_specs.py` | Keep specs as validated intent and add deterministic planner wiring only after external behavior is tested. |
 | AI planning | LLM-written OpenFOAM dictionaries | Out of Scope | Not applicable | `docs/plan.md` says LLM should not directly write OpenFOAM files freely in v1. | Preserve deterministic dictionary generation and validation instead. |
 

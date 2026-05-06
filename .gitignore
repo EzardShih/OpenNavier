@@ -7,3 +7,6 @@ pytest-cache-files-*
 *.egg-info/
 runs/
 examples/*/run/
+apps/studio/node_modules/
+apps/studio/dist/
+apps/studio/src-tauri/target/

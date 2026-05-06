@@ -2,8 +2,8 @@
 
 OpenNavier is a local-first OpenFOAM automation and diagnostics CLI. The initial
 slice focuses on deterministic starter cases, case inspection, Markdown reports,
-and tested local runner building blocks before a full solver CLI workflow,
-desktop UI, or AI planning is added.
+tested local runner building blocks, tool adapters, and an initial desktop
+scaffold before a full solver CLI workflow or AI planning is added.
 
 Your geometry, mesh, logs, and results stay on your machine by default. The CLI
 does not upload case data to a cloud service.
@@ -23,6 +23,10 @@ uv run pytest
 uv run ruff check .
 uv run opennavier --help
 ```
+
+The `apps/studio` directory is a Tauri + React scaffold. The Python validation
+suite inspects its deterministic project files; it does not install npm
+dependencies or build the desktop app yet.
 
 If `uv` cannot initialize its default cache directory on Windows or in a
 sandboxed environment, use a workspace-local cache:

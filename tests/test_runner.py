@@ -5,7 +5,7 @@ from shutil import rmtree
 from uuid import uuid4
 
 import pytest
-from opennavier.openfoam.runner import run_local_solver
+from opennavier.openfoam.runner import run_docker_solver, run_local_solver
 
 
 @pytest.fixture
@@ -123,5 +123,140 @@ def test_run_local_solver_rejects_missing_case_path_without_creating_it(
 
     with pytest.raises(NotADirectoryError, match="Case path is not a directory"):
         run_local_solver([sys.executable, "-c", "print('should not run')"], case_path)
+
+    assert not case_path.exists()
+
+
+def test_run_docker_solver_mounts_case_sets_workdir_appends_solver_and_writes_log(
+    runner_tmp_path: Path,
+) -> None:
+    case_path = runner_tmp_path / "case"
+    case_path.mkdir()
+    fake_docker_script = (
+        "import sys; "
+        "print('ARGS=' + repr(sys.argv[1:])); "
+        "print('docker stderr', file=sys.stderr)"
+    )
+
+    result = run_docker_solver(
+        ["simpleFoam", "-case", "."],
+        case_path,
+        image="openfoam/openfoam-run:latest",
+        docker_command=[sys.executable, "-c", fake_docker_script],
+    )
+
+    expected_command = [
+        sys.executable,
+        "-c",
+        fake_docker_script,
+        "run",
+        "--rm",
+        "--volume",
+        f"{case_path.resolve()}:/case",
+        "--workdir",
+        "/case",
+        "openfoam/openfoam-run:latest",
+        "simpleFoam",
+        "-case",
+        ".",
+    ]
+    assert result.command == expected_command
+    assert result.case_path == case_path
+    assert result.return_code == 0
+    assert result.succeeded is True
+    assert repr(expected_command[3:]) in result.stdout
+    assert result.stderr == "docker stderr\n"
+    assert result.log_path == case_path / "log.simpleFoam"
+    assert result.log_path.read_text(encoding="utf-8").startswith(
+        "$ " + " ".join(expected_command) + "\n\n[stdout]\n"
+    )
+
+
+def test_run_docker_solver_writes_caller_provided_log_path(
+    runner_tmp_path: Path,
+) -> None:
+    case_path = runner_tmp_path / "case"
+    case_path.mkdir()
+    log_path = runner_tmp_path / "logs" / "docker.log"
+
+    result = run_docker_solver(
+        ["pisoFoam"],
+        case_path,
+        image="openfoam/openfoam-run:latest",
+        docker_command=[sys.executable, "-c", "print('custom docker log')"],
+        log_path=log_path,
+    )
+
+    assert result.succeeded is True
+    assert result.log_path == log_path
+    assert log_path.read_text(encoding="utf-8").endswith("[stdout]\ncustom docker log\n")
+
+
+def test_run_docker_solver_returns_clear_failure_for_missing_docker(
+    runner_tmp_path: Path,
+) -> None:
+    case_path = runner_tmp_path / "case"
+    case_path.mkdir()
+
+    result = run_docker_solver(
+        ["simpleFoam"],
+        case_path,
+        image="openfoam/openfoam-run:latest",
+        docker_command=["definitely-missing-docker-command"],
+    )
+
+    assert result.succeeded is False
+    assert result.return_code is None
+    assert result.stdout == ""
+    assert "Docker executable not found: definitely-missing-docker-command" in result.stderr
+    assert result.log_path == case_path / "log.simpleFoam"
+    assert "Docker executable not found" in result.log_path.read_text(encoding="utf-8")
+
+
+def test_run_docker_solver_rejects_bare_string_solver_command(
+    runner_tmp_path: Path,
+) -> None:
+    case_path = runner_tmp_path / "case"
+    case_path.mkdir()
+
+    with pytest.raises(TypeError, match="solver_command must be a sequence of arguments"):
+        run_docker_solver(  # type: ignore[arg-type]
+            "simpleFoam",
+            case_path,
+            image="openfoam/openfoam-run:latest",
+        )
+
+    assert not (case_path / "log.s").exists()
+
+
+def test_run_docker_solver_rejects_bare_string_docker_command(
+    runner_tmp_path: Path,
+) -> None:
+    case_path = runner_tmp_path / "case"
+    case_path.mkdir()
+
+    with pytest.raises(TypeError, match="docker_command must be a sequence of arguments"):
+        run_docker_solver(
+            ["simpleFoam"],
+            case_path,
+            image="openfoam/openfoam-run:latest",
+            docker_command="docker",  # type: ignore[arg-type]
+        )
+
+    assert not (case_path / "log.simpleFoam").exists()
+
+
+def test_run_docker_solver_rejects_missing_case_path_without_creating_it(
+    runner_tmp_path: Path,
+) -> None:
+    case_path = runner_tmp_path / "missing-case"
+
+    with pytest.raises(NotADirectoryError, match="Case path is not a directory"):
+        run_docker_solver(
+            ["simpleFoam"],
+            case_path,
+            image="openfoam/openfoam-run:latest",
+            docker_command=[sys.executable, "-c", "print('should not run')"],
+        )
 
     assert not case_path.exists()

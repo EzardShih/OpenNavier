@@ -4,7 +4,8 @@ The OpenNavier CLI is the first usable slice of the local-first OpenFOAM
 automation workflow. It can create a deterministic starter cavity case, inspect
 an existing case directory, report deterministic diagnostics, and write a
 Markdown report. The OpenFOAM package also includes a tested local subprocess
-runner API; a CLI command for solver execution is not wired yet.
+runner API with Docker fallback command construction; a CLI command for solver
+execution is not wired yet.
 
 ## Install
 
@@ -22,11 +23,18 @@ uv run opennavier --help
 
 ## Package Layout
 
-The current CLI is split across three workspace packages:
+The current Python workspace is split across CLI, core, OpenFOAM, and adapter
+packages:
 
 - `apps/cli` contains the Typer command-line app.
 - `packages/core` contains shared diagnostic result models.
 - `packages/openfoam` contains OpenFOAM-specific validators.
+- `packages/gmsh`, `packages/freecad`, and `packages/paraview` contain local
+  tool adapter building blocks.
+
+`apps/studio` contains a Tauri + React scaffold for the later desktop UI. Its
+current tests inspect static project files only; npm dependencies are not
+installed by the Python validation suite.
 
 The CLI entry point is:
 
@@ -198,6 +206,9 @@ Implemented now:
 - residual parsing
 - optional `checkMesh` and solver log diagnostics in `doctor` and reports
 - local subprocess runner API with deterministic fake-command tests
+- Docker fallback runner API with deterministic fake-command tests
+- ParaView screenshot script and batch command adapter tests
+- initial local-first Studio scaffold tests
 - CLI output for `check` and `doctor`
 - Markdown report generation
 - reproducibility manifest output for `report --manifest-output`
@@ -213,8 +224,8 @@ Implemented now:
 Not implemented yet:
 
 - CLI command for OpenFOAM solver execution
-- Docker fallback execution
 - AI planning or LLM-written dictionaries
+- installed/running Studio desktop app workflow
 
 Those features should be added after deterministic validators and tests define
 their behavior.

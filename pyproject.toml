@@ -8,6 +8,7 @@ dependencies = [
     "opennavier-cli",
     "opennavier-freecad",
     "opennavier-gmsh",
+    "opennavier-paraview",
 ]
 
 [dependency-groups]
@@ -26,6 +27,7 @@ members = [
     "packages/freecad",
     "packages/gmsh",
     "packages/openfoam",
+    "packages/paraview",
 ]
 
 [tool.uv.sources]
@@ -34,6 +36,7 @@ opennavier-core = { workspace = true }
 opennavier-freecad = { workspace = true }
 opennavier-gmsh = { workspace = true }
 opennavier-openfoam = { workspace = true }
+opennavier-paraview = { workspace = true }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

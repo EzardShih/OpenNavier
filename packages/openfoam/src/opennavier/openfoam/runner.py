@@ -70,6 +70,78 @@ def run_local_solver(
     return result
 
 
+def run_docker_solver(
+    solver_command: Sequence[str],
+    case_path: Path | str,
+    *,
+    image: str,
+    docker_command: Sequence[str] = ("docker",),
+    log_path: Path | str | None = None,
+) -> SolverRunResult:
+    if isinstance(solver_command, str):
+        raise TypeError("solver_command must be a sequence of arguments, not a string")
+
+    if isinstance(docker_command, str):
+        raise TypeError("docker_command must be a sequence of arguments, not a string")
+
+    if not solver_command:
+        raise ValueError("solver_command must include an executable")
+
+    if not docker_command:
+        raise ValueError("docker_command must include an executable")
+
+    solver_parts = [str(part) for part in solver_command]
+    docker_parts = [str(part) for part in docker_command]
+    root = Path(case_path)
+    if not root.is_dir():
+        raise NotADirectoryError(f"Case path is not a directory: {root}")
+
+    target_log_path = (
+        Path(log_path) if log_path is not None else root / _default_log_name(solver_parts)
+    )
+    command_parts = [
+        *docker_parts,
+        "run",
+        "--rm",
+        "--volume",
+        f"{root.resolve()}:/case",
+        "--workdir",
+        "/case",
+        image,
+        *solver_parts,
+    ]
+
+    try:
+        completed = subprocess.run(
+            command_parts,
+            cwd=root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except FileNotFoundError:
+        result = SolverRunResult(
+            command=command_parts,
+            case_path=root,
+            log_path=target_log_path,
+            return_code=None,
+            stdout="",
+            stderr=f"Docker executable not found: {docker_parts[0]}\n",
+        )
+    else:
+        result = SolverRunResult(
+            command=command_parts,
+            case_path=root,
+            log_path=target_log_path,
+            return_code=completed.returncode,
+            stdout=completed.stdout,
+            stderr=completed.stderr,
+        )
+
+    _write_solver_log(result)
+    return result
+
+
 def _default_log_name(command: Sequence[str]) -> str:
     return f"log.{Path(command[0]).name}"
 

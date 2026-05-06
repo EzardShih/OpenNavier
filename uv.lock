@@ -10,6 +10,7 @@ members = [
     "opennavier-freecad",
     "opennavier-gmsh",
     "opennavier-openfoam",
+    "opennavier-paraview",
 ]
 
 [[package]]
@@ -175,6 +176,7 @@ dependencies = [
     { name = "opennavier-cli" },
     { name = "opennavier-freecad" },
     { name = "opennavier-gmsh" },
+    { name = "opennavier-paraview" },
 ]
 
 [package.dev-dependencies]
@@ -188,6 +190,7 @@ requires-dist = [
     { name = "opennavier-cli", editable = "apps/cli" },
     { name = "opennavier-freecad", editable = "packages/freecad" },
     { name = "opennavier-gmsh", editable = "packages/gmsh" },
+    { name = "opennavier-paraview", editable = "packages/paraview" },
 ]
 
 [package.metadata.requires-dev]
@@ -246,6 +249,11 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [{ name = "opennavier-core", editable = "packages/core" }]
+
+[[package]]
+name = "opennavier-paraview"
+version = "0.1.0"
+source = { editable = "packages/paraview" }
 
 [[package]]
 name = "packaging"
