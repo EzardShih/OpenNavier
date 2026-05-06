@@ -48,6 +48,7 @@ $env:UV_CACHE_DIR='.tmp\uv-cache'; uv run opennavier --help
 | Reporting | Deterministic Markdown report generation | Done | Done | `apps/cli/src/opennavier/cli/reporting.py`; report CLI test | Add golden-file or snapshot-style coverage if report formatting becomes more complex. |
 | Documentation | README development and CLI usage notes | Done | Not applicable | `README.md`; `docs/cli.md` | Update whenever setup, commands, or scope changes. |
 | Documentation | Project-management checklist | Done | Not applicable | `docs/project-checklist.md` | Update after each feature lands or validation status changes. |
+| Documentation | MCP simulation canvas design | Done | Not applicable | `docs/simulation-mcp-canvas.md` | Use as the implementation contract for the MCP package. |
 | Examples | Reproducible `examples/cavity` case | Done | Done | `examples/cavity`; `tests/test_examples.py::test_committed_cavity_example_matches_template_and_validates_read_only` | Keep committed examples exact matches for deterministic templates and free of runtime artifacts. |
 | CLI | `opennavier init cavity <case_path>` case creation | Done | Done | `tests/test_init.py` | Add more templates only after each command's generated file tree and overwrite behavior are tested. |
 | CLI | JSON output for diagnostics | Done | Done | `tests/test_cli.py::test_check_json_returns_diagnostics_for_valid_case`; `tests/test_cli.py::test_doctor_json_returns_diagnostics_without_text_summary` | Keep JSON schema stable when new diagnostics are added. |
@@ -63,6 +64,10 @@ $env:UV_CACHE_DIR='.tmp\uv-cache'; uv run opennavier --help
 | FreeCAD adapter | Parametric geometry scripting adapter | Done | Done | `packages/freecad/src/opennavier/freecad/adapter.py`; `tests/test_freecad_adapter.py` | Add real FreeCAD integration tests only when the executable is an explicit test dependency. |
 | ParaView adapter | Batch post-processing and screenshots | Not Started | Missing | Planned for a later phase in `docs/plan.md` | Delay until solver logs and result layout are available. |
 | Studio | Desktop UI | Not Started | Missing | Planned for later in `docs/plan.md` | Start only after CLI usage validates workflows. |
+| MCP | MCP server package | Not Started | Missing | Planned in `docs/simulation-mcp-canvas.md` | Add `packages/mcp` only after workspace manifest behavior is specified with tests. |
+| MCP | MCP workspace tools | Not Started | Missing | Planned in `docs/simulation-mcp-canvas.md` | Start with read-only workspace inspection before adding mutating tools. |
+| MCP | MCP spec tools | Not Started | Missing | Planned in `docs/simulation-mcp-canvas.md` | Reuse the validated `SimulationSpec` model and add schema round-trip tests. |
+| MCP | MCP diagnostics tools | Not Started | Missing | Planned in `docs/simulation-mcp-canvas.md` | Expose existing deterministic diagnostics before adding solver execution tools. |
 | AI planning | Pydantic simulation specs from LLM output | Done | Done | `packages/core/src/opennavier_core/simulation_spec.py`; `tests/test_simulation_specs.py` | Keep specs as validated intent and add deterministic planner wiring only after external behavior is tested. |
 | AI planning | LLM-written OpenFOAM dictionaries | Out of Scope | Not applicable | `docs/plan.md` says LLM should not directly write OpenFOAM files freely in v1. | Preserve deterministic dictionary generation and validation instead. |
 
