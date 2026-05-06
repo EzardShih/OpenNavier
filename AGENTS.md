@@ -62,4 +62,6 @@ Pull requests should include a short problem statement, implemented change, vali
 
 Preserve the local-first, engineer-verifiable product direction from `docs/plan.md`. Do not add cloud upload paths, opaque solver behavior, or LLM-written OpenFOAM dictionaries without deterministic validation.
 
+Before developing any new feature, read `docs/p0.md`, `docs/p1.md`, `docs/p2.md`, and `docs/p3.md`. Confirm the feature belongs to the current priority layer, verify its prerequisite steps are complete, and do not skip ahead to later-layer work unless the user explicitly asks for exploratory or documentation-only work. If a requested feature depends on incomplete earlier steps, implement or document the missing prerequisite first.
+
 Agents must follow TDD exactly: red, green, refactor. For implementation tasks, first inspect the relevant behavior, add or update tests, verify the new test fails, implement the minimal fix, verify the new test passes, then run broader validation. Do not skip the red step unless the user explicitly asks for documentation-only or exploratory work.
