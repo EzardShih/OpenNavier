@@ -56,7 +56,7 @@ def test_run_local_solver_executes_command_in_case_directory_and_writes_default_
 def test_run_local_solver_writes_caller_provided_log_path(runner_tmp_path: Path) -> None:
     case_path = runner_tmp_path / "case"
     case_path.mkdir()
-    log_path = runner_tmp_path / "logs" / "solver.log"
+    log_path = case_path / "logs" / "solver.log"
 
     result = run_local_solver(
         [sys.executable, "-c", "print('custom log')"],
@@ -67,6 +67,26 @@ def test_run_local_solver_writes_caller_provided_log_path(runner_tmp_path: Path)
     assert result.succeeded is True
     assert result.log_path == log_path
     assert log_path.read_text(encoding="utf-8").endswith("[stdout]\ncustom log\n")
+
+
+def test_run_local_solver_writes_default_log_to_explicit_run_directory(
+    runner_tmp_path: Path,
+) -> None:
+    case_path = runner_tmp_path / "case"
+    case_path.mkdir()
+    run_directory = runner_tmp_path / "runs"
+
+    result = run_local_solver(
+        [sys.executable, "-c", "print('run directory log')"],
+        case_path,
+        run_directory=run_directory,
+    )
+
+    assert result.succeeded is True
+    assert result.log_path == run_directory / f"log.{Path(sys.executable).name}"
+    assert result.log_path.read_text(encoding="utf-8").endswith(
+        "[stdout]\nrun directory log\n"
+    )
 
 
 def test_run_local_solver_returns_failure_result_for_nonzero_exit(
@@ -127,6 +147,108 @@ def test_run_local_solver_rejects_missing_case_path_without_creating_it(
     assert not case_path.exists()
 
 
+def test_run_local_solver_rejects_case_path_outside_workspace_root(
+    runner_tmp_path: Path,
+) -> None:
+    workspace_root = runner_tmp_path / "workspace"
+    workspace_root.mkdir()
+    outside_case = runner_tmp_path / "outside-case"
+    outside_case.mkdir()
+    marker_path = outside_case / "should-not-run.txt"
+
+    with pytest.raises(ValueError, match="Case path must be inside workspace root"):
+        run_local_solver(
+            [
+                sys.executable,
+                "-c",
+                (
+                    "from pathlib import Path; "
+                    f"Path({str(marker_path)!r}).write_text('ran', encoding='utf-8')"
+                ),
+            ],
+            outside_case,
+            workspace_root=workspace_root,
+        )
+
+    assert not marker_path.exists()
+
+
+def test_run_local_solver_rejects_absolute_log_path_outside_case(
+    runner_tmp_path: Path,
+) -> None:
+    case_path = runner_tmp_path / "case"
+    case_path.mkdir()
+    log_path = (runner_tmp_path / "outside.log").resolve()
+
+    with pytest.raises(ValueError, match="Log path must stay inside"):
+        run_local_solver(
+            [sys.executable, "-c", "print('should not run')"],
+            case_path,
+            log_path=log_path,
+        )
+
+    assert not log_path.exists()
+
+
+def test_run_local_solver_rejects_parent_traversal_log_path_outside_case(
+    runner_tmp_path: Path,
+) -> None:
+    case_path = runner_tmp_path / "case"
+    case_path.mkdir()
+    log_path = case_path / ".." / "outside.log"
+
+    with pytest.raises(ValueError, match="Log path must stay inside"):
+        run_local_solver(
+            [sys.executable, "-c", "print('should not run')"],
+            case_path,
+            log_path=log_path,
+        )
+
+    assert not (runner_tmp_path / "outside.log").exists()
+
+
+def test_run_local_solver_rejects_log_path_outside_explicit_run_directory(
+    runner_tmp_path: Path,
+) -> None:
+    case_path = runner_tmp_path / "case"
+    case_path.mkdir()
+    run_directory = runner_tmp_path / "runs"
+    log_path = runner_tmp_path / "other" / "solver.log"
+
+    with pytest.raises(ValueError, match="Log path must stay inside"):
+        run_local_solver(
+            [sys.executable, "-c", "print('should not run')"],
+            case_path,
+            run_directory=run_directory,
+            log_path=log_path,
+        )
+
+    assert not log_path.exists()
+
+
+def test_run_local_solver_passes_shell_metacharacters_as_arguments(
+    runner_tmp_path: Path,
+) -> None:
+    case_path = runner_tmp_path / "case"
+    case_path.mkdir()
+    injected_path = case_path / "shell-injected.txt"
+    argument = f"literal; {sys.executable} -c \"open({str(injected_path)!r}, 'w').close()\""
+
+    result = run_local_solver(
+        [
+            sys.executable,
+            "-c",
+            "import sys; print(sys.argv[1])",
+            argument,
+        ],
+        case_path,
+    )
+
+    assert result.succeeded is True
+    assert result.stdout == f"{argument}\n"
+    assert not injected_path.exists()
+
+
 def test_run_docker_solver_mounts_case_sets_workdir_appends_solver_and_writes_log(
     runner_tmp_path: Path,
 ) -> None:
@@ -177,7 +299,7 @@ def test_run_docker_solver_writes_caller_provided_log_path(
 ) -> None:
     case_path = runner_tmp_path / "case"
     case_path.mkdir()
-    log_path = runner_tmp_path / "logs" / "docker.log"
+    log_path = case_path / "logs" / "docker.log"
 
     result = run_docker_solver(
         ["pisoFoam"],
@@ -190,6 +312,28 @@ def test_run_docker_solver_writes_caller_provided_log_path(
     assert result.succeeded is True
     assert result.log_path == log_path
     assert log_path.read_text(encoding="utf-8").endswith("[stdout]\ncustom docker log\n")
+
+
+def test_run_docker_solver_writes_default_log_to_explicit_run_directory(
+    runner_tmp_path: Path,
+) -> None:
+    case_path = runner_tmp_path / "case"
+    case_path.mkdir()
+    run_directory = runner_tmp_path / "runs"
+
+    result = run_docker_solver(
+        ["pisoFoam"],
+        case_path,
+        image="openfoam/openfoam-run:latest",
+        docker_command=[sys.executable, "-c", "print('docker run directory log')"],
+        run_directory=run_directory,
+    )
+
+    assert result.succeeded is True
+    assert result.log_path == run_directory / "log.pisoFoam"
+    assert result.log_path.read_text(encoding="utf-8").endswith(
+        "[stdout]\ndocker run directory log\n"
+    )
 
 
 def test_run_docker_solver_returns_clear_failure_for_missing_docker(
@@ -260,3 +404,63 @@ def test_run_docker_solver_rejects_missing_case_path_without_creating_it(
         )
 
     assert not case_path.exists()
+
+
+def test_run_docker_solver_rejects_case_path_outside_workspace_root(
+    runner_tmp_path: Path,
+) -> None:
+    workspace_root = runner_tmp_path / "workspace"
+    workspace_root.mkdir()
+    outside_case = runner_tmp_path / "outside-case"
+    outside_case.mkdir()
+
+    with pytest.raises(ValueError, match="Case path must be inside workspace root"):
+        run_docker_solver(
+            ["simpleFoam"],
+            outside_case,
+            image="openfoam/openfoam-run:latest",
+            docker_command=[sys.executable, "-c", "print('should not run')"],
+            workspace_root=workspace_root,
+        )
+
+    assert not (outside_case / "log.simpleFoam").exists()
+
+
+def test_run_docker_solver_rejects_absolute_log_path_outside_case(
+    runner_tmp_path: Path,
+) -> None:
+    case_path = runner_tmp_path / "case"
+    case_path.mkdir()
+    log_path = (runner_tmp_path / "outside-docker.log").resolve()
+
+    with pytest.raises(ValueError, match="Log path must stay inside"):
+        run_docker_solver(
+            ["simpleFoam"],
+            case_path,
+            image="openfoam/openfoam-run:latest",
+            docker_command=[sys.executable, "-c", "print('should not run')"],
+            log_path=log_path,
+        )
+
+    assert not log_path.exists()
+
+
+def test_run_docker_solver_rejects_parent_traversal_log_path_outside_run_directory(
+    runner_tmp_path: Path,
+) -> None:
+    case_path = runner_tmp_path / "case"
+    case_path.mkdir()
+    run_directory = runner_tmp_path / "runs"
+    log_path = run_directory / ".." / "outside-docker.log"
+
+    with pytest.raises(ValueError, match="Log path must stay inside"):
+        run_docker_solver(
+            ["simpleFoam"],
+            case_path,
+            image="openfoam/openfoam-run:latest",
+            docker_command=[sys.executable, "-c", "print('should not run')"],
+            run_directory=run_directory,
+            log_path=log_path,
+        )
+
+    assert not (runner_tmp_path / "outside-docker.log").exists()
