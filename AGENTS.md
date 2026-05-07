@@ -65,3 +65,9 @@ Preserve the local-first, engineer-verifiable product direction from `docs/plan.
 Before developing any new feature, read `docs/p0.md`, `docs/p1.md`, `docs/p2.md`, and `docs/p3.md`. Confirm the feature belongs to the current priority layer, verify its prerequisite steps are complete, and do not skip ahead to later-layer work unless the user explicitly asks for exploratory or documentation-only work. If a requested feature depends on incomplete earlier steps, implement or document the missing prerequisite first.
 
 Agents must follow TDD exactly: red, green, refactor. For implementation tasks, first inspect the relevant behavior, add or update tests, verify the new test fails, implement the minimal fix, verify the new test passes, then run broader validation. Do not skip the red step unless the user explicitly asks for documentation-only or exploratory work.
+
+Use a parallel feature workflow when multiple independent features are requested. Assign exactly one subagent to each feature, and give each subagent a dedicated git worktree created from `master` with its own feature branch. Keep worktree and branch ownership separate so subagents do not edit the same feature scope.
+
+After a subagent finishes a feature, that same subagent must review its own changes before handing the work back. The primary agent must then review the work before it is published. If either review produces comments or requested changes, the responsible subagent or primary agent must fix them and repeat review until no unresolved review comments remain.
+
+When a feature passes review and validation, push only that feature branch to GitHub and create a draft pull request targeting `master`. Do not push directly to `master`, do not merge pull requests automatically, and leave all merges into `master` for the repository owner to perform manually.
