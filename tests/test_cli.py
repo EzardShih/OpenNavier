@@ -127,6 +127,50 @@ def test_doctor_returns_nonzero_for_invalid_case(case_tmp_path: Path) -> None:
     assert "OpenFOAM case structure is incomplete" in result.output
 
 
+def test_doctor_writes_diagnostics_artifact(case_tmp_path: Path) -> None:
+    diagnostics_path = case_tmp_path / "diagnostics.json"
+
+    result = runner.invoke(
+        app,
+        ["doctor", str(case_tmp_path), "--diagnostics-output", str(diagnostics_path)],
+    )
+
+    assert result.exit_code == 1
+    assert f"Wrote diagnostics: {diagnostics_path}" in result.output
+    artifact = json.loads(diagnostics_path.read_text(encoding="utf-8"))
+    assert artifact["local_only"] is True
+    assert artifact["cloud_upload"] is False
+    assert artifact["counts_by_status"]["FAIL"] > 0
+    assert artifact["diagnostics"][0]["code"] == "openfoam.required_directory.0"
+    assert {"status", "code", "message", "path", "metadata"} <= set(
+        artifact["diagnostics"][0]
+    )
+
+
+def test_doctor_json_stdout_stays_parseable_when_writing_diagnostics_artifact(
+    case_tmp_path: Path,
+) -> None:
+    diagnostics_path = case_tmp_path / "diagnostics.json"
+
+    result = runner.invoke(
+        app,
+        [
+            "doctor",
+            str(case_tmp_path),
+            "--format",
+            "json",
+            "--diagnostics-output",
+            str(diagnostics_path),
+        ],
+    )
+
+    assert result.exit_code == 1
+    diagnostics = json.loads(result.output)
+    assert any(diagnostic["status"] == "FAIL" for diagnostic in diagnostics)
+    assert "Wrote diagnostics" not in result.output
+    assert diagnostics_path.exists()
+
+
 def test_run_executes_local_solver_and_writes_log(case_tmp_path: Path) -> None:
     create_valid_case(case_tmp_path)
 
@@ -150,6 +194,31 @@ def test_run_executes_local_solver_and_writes_log(case_tmp_path: Path) -> None:
     log_path = case_tmp_path / f"log.{Path(sys.executable).name}"
     assert f"Log path: {log_path}" in result.output
     assert log_path.read_text(encoding="utf-8").endswith("[stdout]\ncli solver\n")
+
+
+def test_run_writes_log_to_explicit_run_directory(case_tmp_path: Path) -> None:
+    create_valid_case(case_tmp_path)
+    run_directory = case_tmp_path / "run"
+
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            str(case_tmp_path),
+            "--run-directory",
+            str(run_directory),
+            "--solver",
+            sys.executable,
+            "--solver-arg=-c",
+            "--solver-arg",
+            "print('run directory')",
+        ],
+    )
+
+    assert result.exit_code == 0
+    log_path = run_directory / f"log.{Path(sys.executable).name}"
+    assert f"Log path: {log_path}" in result.output
+    assert log_path.read_text(encoding="utf-8").endswith("[stdout]\nrun directory\n")
 
 
 def test_run_returns_nonzero_for_missing_local_executable(case_tmp_path: Path) -> None:
@@ -327,3 +396,28 @@ def test_report_and_manifest_use_same_warn_diagnostics(
         "openfoam.collector.warn",
     ]
     assert manifest["diagnostics_summary"]["warnings"] == 1
+
+
+def test_report_writes_diagnostics_artifact(case_tmp_path: Path) -> None:
+    case_path = case_tmp_path / "case"
+    create_valid_case(case_path)
+    report_path = case_tmp_path / "report.md"
+    diagnostics_path = case_tmp_path / "diagnostics.json"
+
+    result = runner.invoke(
+        app,
+        [
+            "report",
+            str(case_path),
+            "--output",
+            str(report_path),
+            "--diagnostics-output",
+            str(diagnostics_path),
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert f"Wrote diagnostics: {diagnostics_path}" in result.output
+    artifact = json.loads(diagnostics_path.read_text(encoding="utf-8"))
+    assert artifact["counts_by_status"] == {"FAIL": 0, "PASS": 9, "WARN": 0}
+    assert artifact["diagnostics"]
