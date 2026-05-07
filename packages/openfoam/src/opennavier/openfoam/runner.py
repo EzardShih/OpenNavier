@@ -22,6 +22,8 @@ def run_local_solver(
     command: Sequence[str],
     case_path: Path | str,
     *,
+    workspace_root: Path | str | None = None,
+    run_directory: Path | str | None = None,
     log_path: Path | str | None = None,
 ) -> SolverRunResult:
     if isinstance(command, str):
@@ -31,12 +33,12 @@ def run_local_solver(
         raise ValueError("command must include an executable")
 
     command_parts = [str(part) for part in command]
-    root = Path(case_path)
-    if not root.is_dir():
-        raise NotADirectoryError(f"Case path is not a directory: {root}")
-
-    target_log_path = (
-        Path(log_path) if log_path is not None else root / _default_log_name(command_parts)
+    root = _validated_case_path(case_path, workspace_root=workspace_root)
+    target_log_path = _validated_log_path(
+        command_parts,
+        case_path=root,
+        run_directory=run_directory,
+        log_path=log_path,
     )
 
     try:
@@ -76,6 +78,8 @@ def run_docker_solver(
     *,
     image: str,
     docker_command: Sequence[str] = ("docker",),
+    workspace_root: Path | str | None = None,
+    run_directory: Path | str | None = None,
     log_path: Path | str | None = None,
 ) -> SolverRunResult:
     if isinstance(solver_command, str):
@@ -92,12 +96,12 @@ def run_docker_solver(
 
     solver_parts = [str(part) for part in solver_command]
     docker_parts = [str(part) for part in docker_command]
-    root = Path(case_path)
-    if not root.is_dir():
-        raise NotADirectoryError(f"Case path is not a directory: {root}")
-
-    target_log_path = (
-        Path(log_path) if log_path is not None else root / _default_log_name(solver_parts)
+    root = _validated_case_path(case_path, workspace_root=workspace_root)
+    target_log_path = _validated_log_path(
+        solver_parts,
+        case_path=root,
+        run_directory=run_directory,
+        log_path=log_path,
     )
     command_parts = [
         *docker_parts,
@@ -144,6 +148,49 @@ def run_docker_solver(
 
 def _default_log_name(command: Sequence[str]) -> str:
     return f"log.{Path(command[0]).name}"
+
+
+def _validated_case_path(
+    case_path: Path | str,
+    *,
+    workspace_root: Path | str | None,
+) -> Path:
+    root = Path(case_path)
+    if not root.is_dir():
+        raise NotADirectoryError(f"Case path is not a directory: {root}")
+
+    if workspace_root is not None:
+        workspace = Path(workspace_root).resolve()
+        if not _is_relative_to(root.resolve(), workspace):
+            raise ValueError("Case path must be inside workspace root")
+
+    return root
+
+
+def _validated_log_path(
+    command: Sequence[str],
+    *,
+    case_path: Path,
+    run_directory: Path | str | None,
+    log_path: Path | str | None,
+) -> Path:
+    target_root = Path(run_directory) if run_directory is not None else case_path
+    target_log_path = (
+        Path(log_path) if log_path is not None else target_root / _default_log_name(command)
+    )
+
+    if not _is_relative_to(target_log_path.resolve(), target_root.resolve()):
+        raise ValueError(f"Log path must stay inside {target_root}")
+
+    return target_log_path
+
+
+def _is_relative_to(path: Path, parent: Path) -> bool:
+    try:
+        path.relative_to(parent)
+    except ValueError:
+        return False
+    return True
 
 
 def _write_solver_log(result: SolverRunResult) -> None:
