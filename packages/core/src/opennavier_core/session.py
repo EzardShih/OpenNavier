@@ -62,7 +62,9 @@ class AgentSession(SessionModel):
         if self.cloud_upload:
             raise ValueError("Session artifacts do not allow cloud upload")
 
-        root = Path(self.workspace_root).expanduser().resolve()
+        root = Path(
+            _require_non_blank_path_value(self.workspace_root, field_name="workspace_root")
+        ).expanduser().resolve()
         if not root.is_dir():
             raise ValueError(f"Workspace root is not a directory: {root}")
         self.workspace_root = str(root)
@@ -75,6 +77,9 @@ class AgentSession(SessionModel):
                 command.cwd = _workspace_relative_path(root, command.cwd)
             if command.log_path is not None:
                 command.log_path = _workspace_relative_path(root, command.log_path)
+
+        for diagnostic in self.diagnostics:
+            diagnostic.path = _workspace_relative_path(root, diagnostic.path)
 
         return self
 
@@ -158,7 +163,7 @@ def _workspace_relative_path(root: Path, value: Path | str) -> str:
 
 
 def _workspace_path(root: Path, value: Path | str) -> Path:
-    path = Path(value).expanduser()
+    path = Path(_require_non_blank_path_value(value, field_name="path")).expanduser()
     candidate = _workspace_candidate(root, path)
     try:
         candidate.relative_to(root)
@@ -188,3 +193,9 @@ def _nearest_existing_parent(path: Path) -> Path | None:
         if candidate.exists():
             return candidate
     return None
+
+
+def _require_non_blank_path_value(value: Path | str, *, field_name: str) -> Path | str:
+    if isinstance(value, str) and not value.strip():
+        raise ValueError(f"{field_name} must not be blank")
+    return value

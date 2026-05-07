@@ -145,6 +145,94 @@ def test_session_rejects_command_log_paths_that_escape_workspace(
         )
 
 
+def test_session_rejects_diagnostic_paths_that_escape_workspace(
+    workspace_tmp_path: Path,
+) -> None:
+    with pytest.raises(ValidationError, match="escapes workspace root"):
+        create_agent_session(
+            workspace_root=workspace_tmp_path,
+            session_id="session-001",
+            engineering_intent="Run a lid-driven cavity case.",
+            diagnostics=[
+                DiagnosticResult(
+                    status=DiagnosticStatus.FAIL,
+                    code="openfoam.path.escape",
+                    message="Diagnostic path escapes the workspace.",
+                    path="../outside.txt",
+                )
+            ],
+        )
+
+
+def test_session_rejects_blank_workspace_root() -> None:
+    with pytest.raises(ValidationError, match="must not be blank"):
+        AgentSession.model_validate(
+            {
+                "schema_version": "1.0",
+                "session_id": "session-001",
+                "workspace_root": "",
+                "engineering_intent": "Run a lid-driven cavity case.",
+            }
+        )
+
+
+def test_session_rejects_blank_artifact_paths(workspace_tmp_path: Path) -> None:
+    with pytest.raises(ValidationError, match="must not be blank"):
+        create_agent_session(
+            workspace_root=workspace_tmp_path,
+            session_id="session-001",
+            engineering_intent="Run a lid-driven cavity case.",
+            report_refs=[
+                ArtifactReference(
+                    kind="report",
+                    path="",
+                    provenance=provenance(),
+                )
+            ],
+        )
+
+
+def test_session_rejects_blank_diagnostic_paths(workspace_tmp_path: Path) -> None:
+    with pytest.raises(ValidationError, match="must not be blank"):
+        create_agent_session(
+            workspace_root=workspace_tmp_path,
+            session_id="session-001",
+            engineering_intent="Run a lid-driven cavity case.",
+            diagnostics=[
+                DiagnosticResult(
+                    status=DiagnosticStatus.FAIL,
+                    code="openfoam.blank.path",
+                    message="Diagnostic path is blank.",
+                    path="",
+                )
+            ],
+        )
+
+
+@pytest.mark.parametrize("field_name", ["cwd", "log_path"])
+def test_session_rejects_blank_command_paths(
+    workspace_tmp_path: Path,
+    field_name: str,
+) -> None:
+    command_record = {
+        "runner": "local",
+        "command": ["icoFoam", "-case", "case"],
+        "provenance": provenance().model_dump(),
+        field_name: "",
+    }
+
+    with pytest.raises(ValidationError, match="must not be blank"):
+        AgentSession.model_validate(
+            {
+                "schema_version": "1.0",
+                "session_id": "session-001",
+                "workspace_root": str(workspace_tmp_path),
+                "engineering_intent": "Run a lid-driven cavity case.",
+                "command_records": [command_record],
+            }
+        )
+
+
 def test_load_session_validates_existing_artifact_and_normalizes_paths(
     workspace_tmp_path: Path,
 ) -> None:
