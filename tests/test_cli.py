@@ -38,6 +38,7 @@ def test_help_shows_core_commands() -> None:
     assert result.exit_code == 0
     assert "check" in result.output
     assert "doctor" in result.output
+    assert "run" in result.output
     assert "report" in result.output
 
 
@@ -124,6 +125,103 @@ def test_doctor_returns_nonzero_for_invalid_case(case_tmp_path: Path) -> None:
     assert result.exit_code == 1
     assert "Likely issues" in result.output
     assert "OpenFOAM case structure is incomplete" in result.output
+
+
+def test_run_executes_local_solver_and_writes_log(case_tmp_path: Path) -> None:
+    create_valid_case(case_tmp_path)
+
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            str(case_tmp_path),
+            "--solver",
+            sys.executable,
+            "--solver-arg=-c",
+            "--solver-arg",
+            "print('cli solver')",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "Runner: local" in result.output
+    assert f"Command: {sys.executable} -c print('cli solver')" in result.output
+    assert "Return code: 0" in result.output
+    log_path = case_tmp_path / f"log.{Path(sys.executable).name}"
+    assert f"Log path: {log_path}" in result.output
+    assert log_path.read_text(encoding="utf-8").endswith("[stdout]\ncli solver\n")
+
+
+def test_run_returns_nonzero_for_missing_local_executable(case_tmp_path: Path) -> None:
+    create_valid_case(case_tmp_path)
+
+    result = runner.invoke(
+        app,
+        ["run", str(case_tmp_path), "--solver", "definitely-missing-openfoam-command"],
+    )
+
+    assert result.exit_code == 1
+    assert "Runner: local" in result.output
+    assert "Return code: missing executable" in result.output
+    log_path = case_tmp_path / "log.definitely-missing-openfoam-command"
+    assert f"Log path: {log_path}" in result.output
+    assert "Executable not found" in log_path.read_text(encoding="utf-8")
+
+
+def test_run_returns_nonzero_for_solver_failure(case_tmp_path: Path) -> None:
+    create_valid_case(case_tmp_path)
+
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            str(case_tmp_path),
+            "--solver",
+            sys.executable,
+            "--solver-arg=-c",
+            "--solver-arg",
+            "import sys; print('bad input', file=sys.stderr); raise SystemExit(4)",
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert "Runner: local" in result.output
+    assert "Return code: 4" in result.output
+    assert "bad input" in (
+        case_tmp_path / f"log.{Path(sys.executable).name}"
+    ).read_text(encoding="utf-8")
+
+
+def test_run_uses_docker_only_when_explicitly_selected(case_tmp_path: Path) -> None:
+    create_valid_case(case_tmp_path)
+    fake_docker_script = "import sys; print('DOCKER_ARGS=' + repr(sys.argv[1:]))"
+
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            str(case_tmp_path),
+            "--runner",
+            "docker",
+            "--docker-image",
+            "openfoam/openfoam-run:latest",
+            "--docker-command",
+            sys.executable,
+            "--docker-command=-c",
+            "--docker-command",
+            fake_docker_script,
+            "--solver",
+            "simpleFoam",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "Runner: docker" in result.output
+    assert "openfoam/openfoam-run:latest simpleFoam" in result.output
+    assert "Return code: 0" in result.output
+    assert "DOCKER_ARGS=" in (case_tmp_path / "log.simpleFoam").read_text(
+        encoding="utf-8"
+    )
 
 
 def test_report_writes_markdown_report(case_tmp_path: Path) -> None:

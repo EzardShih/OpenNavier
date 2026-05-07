@@ -7,6 +7,7 @@ from opennavier.cli.reporting import write_markdown_report
 from opennavier.openfoam.case_structure import validate_case_structure
 from opennavier.openfoam.diagnostics import collect_case_diagnostics
 from opennavier.openfoam.init_case import CasePathNotEmptyError, create_cavity_case
+from opennavier.openfoam.runner import SolverRunResult, run_docker_solver, run_local_solver
 from opennavier_core.diagnostics import DiagnosticResult, has_failures
 from opennavier_core.manifest import write_reproducibility_manifest
 
@@ -83,6 +84,58 @@ def doctor(
 
 
 @app.command()
+def run(
+    case_path: Annotated[Path, typer.Argument(help="OpenFOAM case directory.")],
+    solver: Annotated[
+        str,
+        typer.Option("--solver", help="Solver executable to run."),
+    ] = "icoFoam",
+    solver_args: Annotated[
+        list[str] | None,
+        typer.Option("--solver-arg", help="Argument passed to the solver command."),
+    ] = None,
+    runner_name: Annotated[
+        Literal["local", "docker"],
+        typer.Option("--runner", help="Solver runner backend."),
+    ] = "local",
+    docker_image: Annotated[
+        str | None,
+        typer.Option("--docker-image", help="Docker image for --runner docker."),
+    ] = None,
+    docker_command: Annotated[
+        list[str] | None,
+        typer.Option("--docker-command", help="Docker command argument."),
+    ] = None,
+    log_path: Annotated[
+        Path | None,
+        typer.Option("--log-path", help="Solver log path inside the allowed run target."),
+    ] = None,
+) -> None:
+    """Run an explicit OpenFOAM solver command and write an auditable log."""
+    solver_command = [solver, *(solver_args or [])]
+
+    if runner_name == "docker":
+        if docker_image is None:
+            raise typer.BadParameter(
+                "--docker-image is required when --runner docker is selected.",
+                param_hint="--docker-image",
+            )
+        result = run_docker_solver(
+            solver_command,
+            case_path,
+            image=docker_image,
+            docker_command=docker_command or ["docker"],
+            log_path=log_path,
+        )
+    else:
+        result = run_local_solver(solver_command, case_path, log_path=log_path)
+
+    _print_solver_run(result, runner_name=runner_name)
+    if not result.succeeded:
+        raise typer.Exit(code=1)
+
+
+@app.command()
 def report(
     case_path: Annotated[Path, typer.Argument(help="OpenFOAM case directory.")],
     output: Annotated[Path, typer.Option("--output", "-o", help="Markdown report path.")] = Path(
@@ -123,6 +176,18 @@ def _validate_distinct_artifact_paths(*, output: Path, manifest_output: Path) ->
             "--manifest-output must be different from --output.",
             param_hint="--manifest-output",
         )
+
+
+def _print_solver_run(
+    result: SolverRunResult, *, runner_name: Literal["local", "docker"]
+) -> None:
+    return_code = (
+        "missing executable" if result.return_code is None else str(result.return_code)
+    )
+    typer.echo(f"Runner: {runner_name}")
+    typer.echo(f"Command: {' '.join(result.command)}")
+    typer.echo(f"Return code: {return_code}")
+    typer.echo(f"Log path: {result.log_path}")
 
 
 def _print_diagnostics(
