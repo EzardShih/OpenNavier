@@ -1,9 +1,10 @@
 # OpenNavier
 
-OpenNavier is a local-first OpenFOAM automation and diagnostics CLI. The initial
-slice focuses on deterministic starter cases, case inspection, Markdown reports,
-tested local runner building blocks, tool adapters, and an initial desktop
-scaffold before a full solver CLI workflow or AI planning is added.
+OpenNavier is a local-first OpenFOAM automation and diagnostics CLI. The P0
+slice focuses on deterministic starter cases, case inspection, explicit solver
+execution, auditable run logs, diagnostics artifacts, Markdown reports,
+simulation plan artifacts, tested tool adapters, and an initial desktop
+scaffold.
 
 Your geometry, mesh, logs, and results stay on your machine by default. The CLI
 does not upload case data to a cloud service.
@@ -76,6 +77,24 @@ Run the same deterministic checks with troubleshooting-oriented output:
 opennavier doctor ./examples/cavity
 ```
 
+Write durable diagnostics JSON from `doctor`:
+
+```bash
+opennavier doctor ./examples/cavity --diagnostics-output diagnostics.json
+```
+
+Run an explicit local solver command and write an auditable solver log:
+
+```bash
+opennavier run ./examples/cavity --solver icoFoam
+```
+
+Run through Docker only when explicitly selected:
+
+```bash
+opennavier run ./examples/cavity --runner docker --docker-image openfoam/openfoam-run:latest --solver icoFoam
+```
+
 Generate a Markdown report:
 
 ```bash
@@ -86,6 +105,12 @@ Generate the report with a reproducibility manifest:
 
 ```bash
 opennavier report ./examples/cavity --output report.md --manifest-output manifest.json
+```
+
+Generate the report with a diagnostics artifact:
+
+```bash
+opennavier report ./examples/cavity --output report.md --diagnostics-output diagnostics.json
 ```
 
 The first validator checks for required OpenFOAM case paths:
@@ -105,3 +130,9 @@ modifying the case.
 dictionaries are present. `doctor` and `report` parse recognized optional
 `checkMesh` and solver logs when they are present, without requiring OpenFOAM to
 be installed.
+
+The core package also includes local-only simulation plan and planner contracts
+that map a validated cavity `SimulationSpec` to deterministic commands,
+approval checkpoints, expected artifacts, diagnostics, and reports. Unsupported
+or incomplete planning requests are rejected with structured reasons instead of
+partial plans.
