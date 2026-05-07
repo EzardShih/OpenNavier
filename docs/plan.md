@@ -60,7 +60,7 @@ User: "Simulate airflow through this simple duct at 10 m/s and estimate pressure
 
 Agent:
 1. Creates an OpenFOAM case
-2. Selects solver and template
+2. Selects solver and validates a `CaseBuildSpec`
 3. Generates or imports mesh
 4. Writes boundary conditions
 5. Runs pre-checks
@@ -144,7 +144,7 @@ Desktop / CLI App
 | CAD scripting    | **FreeCAD**       | Open-source parametric CAD with Python scripting support. ([FreeCAD Wiki][5])                        |
 | Mesh generation  | **Gmsh**          | Open-source mesh generator, distributed under GPL. ([gmsh.info][6])                                  |
 | Visualization    | **ParaView**      | Open-source visualization tool with BSD 3-Clause license and Python/batch scripting. ([ParaView][7]) |
-| Local automation | Python + Docker   | Easiest for subprocess control, templates, parsing, and reports                                      |
+| Local automation | Python + Docker   | Easiest for subprocess control, case-build execution, parsing, and reports                           |
 | Desktop later    | Tauri or Electron | Add UI after CLI proves usage                                                                        |
 
 ## Tech stack decision
@@ -159,7 +159,7 @@ Use a Python-first stack for v0.1. The first product is a local CLI and determin
 | Packaging | **`pyproject.toml` + `uv`** | Use a modern Python project layout with fast dependency sync and reproducible lockfiles. |
 | CLI framework | **Typer** | Clean command definitions for `opennavier doctor`, `opennavier report`, `opennavier init`, and future subcommands. |
 | Data models | **Pydantic** | Validate simulation specs, manifests, diagnostics, and report inputs before writing files. |
-| Templates | **Jinja2** | Generate OpenFOAM dictionaries, report Markdown, and later Gmsh/ParaView scripts from explicit templates. |
+| Dictionary writers | **Python structured writers** | Write OpenFOAM dictionaries, report Markdown, and later Gmsh/ParaView scripts from validated `CaseBuildSpec` data. |
 | Testing | **pytest** | Unit-test parsers, validators, manifests, and CLI behavior without requiring OpenFOAM for every test. |
 | Formatting/linting | **Ruff** | Single fast tool for linting and formatting Python code. |
 | Local execution | **native subprocess + Docker fallback** | Run local OpenFOAM when installed; use Docker images for reproducible examples and CI-style validation. |
@@ -178,9 +178,11 @@ Use a Python-first stack for v0.1. The first product is a local CLI and determin
 
 Delay the desktop app until the CLI has real usage. Prefer **Tauri + TypeScript + React** for OpenNavier Studio because it fits a local-first desktop product with a smaller runtime than Electron. Keep the Python CLI as the automation engine behind the UI.
 
-Delay LLM integration until deterministic commands work. When added, the LLM should produce structured Pydantic simulation specs, not raw OpenFOAM dictionaries.
+Delay LLM integration until deterministic commands work. When added, the LLM
+should produce structured Pydantic simulation specs and schema-backed
+`CaseBuildSpec` artifacts, not raw OpenFOAM dictionaries.
 
-Important licensing note: OpenFOAM is GPL, Gmsh is GPL, FreeCAD is LGPL, and ParaView is BSD-licensed. ([OpenFOAM][4]) For the first commercial version, avoid modifying and redistributing solver internals unless you are ready to comply with GPL obligations. Keep your proprietary value in orchestration, templates, QA, reports, UI, and hosted services.
+Important licensing note: OpenFOAM is GPL, Gmsh is GPL, FreeCAD is LGPL, and ParaView is BSD-licensed. ([OpenFOAM][4]) For the first commercial version, avoid modifying and redistributing solver internals unless you are ready to comply with GPL obligations. Keep your proprietary value in orchestration, case-build tooling, QA, reports, UI, and hosted services.
 
 ---
 
@@ -205,7 +207,7 @@ opennavier/
 │   ├── cli.py
 │   ├── runners/
 │   │   └── openfoam_runner.py
-│   ├── templates/
+│   ├── prompt_examples/
 │   │   └── cavity/
 │   ├── validators/
 │   │   ├── case_structure.py
@@ -259,7 +261,7 @@ Do not add LLM until this deterministic pipeline works.
 
 ### Build
 
-* Case generator from templates
+* Case writer from validated `CaseBuildSpec` data
 * OpenFOAM runner
 * Log parser
 * Mesh checker wrapper
@@ -298,7 +300,8 @@ Most AI engineering products fail because they generate plausible-looking files 
 ## Phase 2: Agent layer on top of deterministic tools
 
 **Timeline:** Week 3–4
-**Goal:** Natural-language interface, but only within known templates.
+**Goal:** Natural-language interface through validated `CaseBuildSpec` data, not
+fixed hardcoded case generators.
 
 The concrete implementation contract for the "Pencil for simulation" direction
 is documented in [`simulation-mcp-canvas.md`](simulation-mcp-canvas.md). It
@@ -309,7 +312,7 @@ tools instead of free-form dictionary edits.
 ### Build
 
 ```text
-User intent → structured simulation spec → case template → validation → execution → diagnosis → report
+User intent → structured simulation spec → validated CaseBuildSpec → MCP tool operations → validation → execution → diagnosis → report
 ```
 
 Example structured spec:
@@ -332,12 +335,13 @@ The LLM should **not directly write OpenFOAM files freely** in v1.
 Instead:
 
 1. LLM extracts intent
-2. deterministic planner maps to template
-3. schema validates parameters
-4. file generator writes OpenFOAM dictionaries
-5. checker rejects invalid setups
-6. runner executes
-7. LLM explains results
+2. LLM may propose a one-off `CaseBuildSpec` as typed schema data
+3. deterministic validators check the build spec, paths, writer operations, and required approvals
+4. deterministic planner maps spec plus validated `CaseBuildSpec` to MCP/package tool operations
+5. file generator writes OpenFOAM dictionaries through approved operations
+6. checker rejects invalid setups
+7. runner executes
+8. LLM explains results
 
 This is much safer than letting the LLM edit every file arbitrarily.
 
@@ -480,7 +484,7 @@ Features:
 * `run`
 * `diagnose`
 * `report`
-* 3 templates
+* 3 prompt examples and validated case-build paths
 * Markdown reports
 * local-only
 
@@ -497,7 +501,7 @@ Features:
 
 * natural-language prompt
 * schema-based spec generation
-* template selection
+* schema-based `CaseBuildSpec` generation from prompt examples
 * explanation of assumptions
 * no arbitrary file editing yet
 
@@ -640,7 +644,7 @@ opennavier/
 │   │   └── reports/
 │   │
 │   ├── openfoam/
-│   │   ├── templates/
+│   │   ├── case_build/
 │   │   ├── dictionary_writer/
 │   │   ├── runner/
 │   │   ├── log_parser/
@@ -655,12 +659,12 @@ opennavier/
 │   │   └── step_exporter/
 │   │
 │   ├── paraview/
-│   │   ├── pvpython_templates/
+│   │   ├── pvpython_scripts/
 │   │   └── screenshot_exporter/
 │   │
 │   └── agent/
 │       ├── llm_client/
-│       ├── prompt_templates/
+│       ├── prompt_examples/
 │       ├── tool_registry/
 │       └── guardrails/
 │
@@ -718,9 +722,9 @@ Every failed run becomes structured knowledge:
 }
 ```
 
-### 2. Engineering templates
+### 2. Prompt Example Library
 
-Own the best open-source templates for common use cases:
+Provide strong non-executable prompt examples for common use cases:
 
 * duct pressure drop
 * fan enclosure airflow
@@ -740,7 +744,7 @@ Every run generates a manifest:
   "solver": "simpleFoam",
   "openfoam_version": "v2412",
   "mesh_tool": "gmsh",
-  "case_template": "duct-pressure-drop@0.1.0",
+  "case_build_spec": "case-builds/duct-pressure-drop.json",
   "created_by": "opennavier",
   "assumptions": [
     "incompressible flow",
@@ -910,7 +914,7 @@ Do not sell SaaS first. Sell **workflow acceleration**.
 $500–$2,000 fixed-price pilot
 
 We help your team automate one recurring OpenFOAM workflow locally:
-- case template
+- case-build spec
 - validation rules
 - run script
 - report generator
@@ -945,7 +949,7 @@ You reduce 2 days of repeated simulation setup/reporting into 30 minutes.
 ```text
 - CLI
 - OpenFOAM runner
-- basic templates
+- prompt examples
 - basic diagnostics
 - Markdown reports
 - local LLM support
@@ -958,7 +962,7 @@ $19–$49/month individual
 - desktop UI
 - advanced reports
 - run comparison
-- private template library
+- private prompt example library
 - advanced diagnostics
 - PDF export
 - parametric sweeps
@@ -969,7 +973,7 @@ $19–$49/month individual
 ```text
 $199–$999/month/team
 - shared local project format
-- internal template registry
+- internal prompt example registry
 - audit trail
 - team report branding
 - private model config
@@ -1011,7 +1015,7 @@ Then add product pricing after usage patterns are clear.
 For local-first products, usage-based pricing is harder because compute happens on the user’s machine. Better monetization:
 
 * support
-* templates
+* prompt examples
 * QA rules
 * desktop UI
 * team workflows
@@ -1040,7 +1044,7 @@ opennavier doctor ./case
 opennavier report ./case --format pdf
 ```
 
-## Third wedge: template generator
+## Third wedge: case-build generator
 
 **Why:** makes new users productive.
 
@@ -1117,10 +1121,10 @@ Focus:
 
 ## Week 3
 
-Add template generator.
+Add case-build generator.
 
 ```text
-Templates:
+Prompt examples:
 - cavity
 - pipe flow
 - duct pressure drop
@@ -1131,7 +1135,7 @@ Templates:
 Add LLM intent parser.
 
 ```text
-But only output structured simulation spec.
+But only output structured simulation specs or `CaseBuildSpec` artifacts.
 Do not let it freely write case files.
 ```
 
@@ -1144,7 +1148,7 @@ Do not let it freely write case files.
 | Day 1     | Run + report one case              | Start build-in-public thread     | 1 working demo      |
 | Week 1    | CLI + residual parser              | GitHub repo public               | 20 GitHub stars     |
 | Week 2    | `opennavier doctor`                  | Ask users for broken cases       | 5 real cases tested |
-| Week 3    | 3 case templates                   | Publish OpenFOAM debugging posts | 100 stars           |
+| Week 3    | 3 prompt examples + build specs    | Publish OpenFOAM debugging posts | 100 stars           |
 | Week 4    | LLM intent → validated spec        | YouTube demo                     | 10 active users     |
 | Month 2   | mesh + BC + residual diagnostics   | CFD community launch             | 25 real user cases  |
 | Month 3   | parametric duct/enclosure workflow | paid pilot outreach              | 3 paid pilots       |
@@ -1181,7 +1185,7 @@ Submit a broken case
 
 ```text
 1. Diagnose broken OpenFOAM cases
-2. Generate validated case templates
+2. Generate validated case-build specs
 3. Run simulations locally
 4. Parse residuals and mesh quality
 5. Generate engineering reports
