@@ -14,7 +14,7 @@ class GeometryDimensions(SimulationSpecModel):
 
 
 class GeometrySpec(SimulationSpecModel):
-    kind: Literal["cavity"]
+    kind: str = Field(min_length=1)
     dimensions: GeometryDimensions
 
 
@@ -25,7 +25,7 @@ class MeshCells(SimulationSpecModel):
 
 
 class MeshSpec(SimulationSpecModel):
-    kind: Literal["structured"]
+    kind: str = Field(min_length=1)
     cells: MeshCells
 
 
@@ -74,7 +74,7 @@ class RunControlSpec(SimulationSpecModel):
 
 class SimulationSpec(SimulationSpecModel):
     case_name: str
-    solver_family: Literal["incompressible_laminar"]
+    solver_family: str = Field(min_length=1)
     geometry: GeometrySpec
     mesh: MeshSpec
     fluid: FluidSpec

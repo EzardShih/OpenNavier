@@ -1,11 +1,11 @@
 # OpenNavier CLI
 
 The OpenNavier CLI is the first usable slice of the local-first OpenFOAM
-automation workflow. It can create a deterministic starter cavity case, inspect
-an existing case directory, report deterministic diagnostics, and write a
-Markdown report. The OpenFOAM package also includes a tested local subprocess
-runner API with Docker fallback command construction; a CLI command for solver
-execution is not wired yet.
+automation workflow. It can create a legacy reference cavity case, inspect an
+existing case directory, run explicit solver commands, report deterministic
+diagnostics, and write a Markdown report. New planning work should use
+schema-backed `CaseBuildSpec` validation and writer operations rather than a
+template-selection workflow.
 
 ## Install
 
@@ -85,7 +85,9 @@ the case.
 
 ### `opennavier init cavity <case_path>`
 
-Creates a minimal OpenFOAM lid-driven cavity case.
+Creates a minimal OpenFOAM lid-driven cavity reference case. This command
+remains for compatibility and examples; generic case generation should go
+through validated `CaseBuildSpec` data and case-build tools.
 
 ```bash
 uv run opennavier init cavity ./runs/cavity-001
@@ -198,7 +200,7 @@ The tests use small temporary case folders and do not require OpenFOAM.
 Implemented now:
 
 - deterministic case-structure diagnostics
-- deterministic `init cavity` case generation with overwrite guards
+- legacy reference `init cavity` case generation with overwrite guards
 - JSON diagnostics output for `check` and `doctor`
 - minimal `FoamFile` header checks for required system dictionaries
 - cavity-style boundary-condition validation in `doctor`
@@ -212,7 +214,7 @@ Implemented now:
 - CLI output for `check` and `doctor`
 - Markdown report generation
 - reproducibility manifest output for `report --manifest-output`
-- committed `examples/cavity` case matching the deterministic template
+- committed `examples/cavity` case matching the reference cavity fixture
 - tests for valid and invalid case structures
 - tests for CLI help, success, failure, doctor, and report behavior
 - tests for JSON diagnostics output and exit codes
@@ -223,8 +225,8 @@ Implemented now:
 
 Not implemented yet:
 
-- CLI command for OpenFOAM solver execution
-- AI planning or LLM-written dictionaries
+- CLI wrappers for generic case-build validate, dry-run, and write operations
+- LLM-generated typed `CaseBuildSpec` intake
 - installed/running Studio desktop app workflow
 
 Those features should be added after deterministic validators and tests define

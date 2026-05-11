@@ -1,9 +1,14 @@
 import json
-from collections.abc import Mapping
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field
 
+from opennavier_core.case_build_spec import (
+    SUPPORTED_CAVITY_MESH,
+    CaseBuildCapabilityIssue,
+    CaseBuildSpec,
+    case_build_writer_capability_issues,
+)
 from opennavier_core.plan import SimulationPlan, create_simulation_plan
 from opennavier_core.simulation_spec import SimulationSpec
 
@@ -12,154 +17,217 @@ class PlanningModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-class PlanningRejectionReason(PlanningModel):
+class PlanningReason(PlanningModel):
     code: str = Field(min_length=1)
     message: str = Field(min_length=1)
     path: str = Field(min_length=1)
     metadata: dict[str, str] = Field(default_factory=dict)
 
 
-class PlanningRejection(PlanningModel):
-    status: Literal["rejected"] = "rejected"
-    reasons: list[PlanningRejectionReason] = Field(min_length=1)
+class PlannedSimulation(PlanningModel):
+    status: Literal["planned"] = "planned"
+    plan: SimulationPlan
 
 
-class PlanningRejected(ValueError):
-    def __init__(self, rejection: PlanningRejection) -> None:
-        self.rejection = rejection
-        super().__init__("Simulation planning was rejected")
+class PlanningCapabilityResult(PlanningModel):
+    status: Literal["not_executable"] = "not_executable"
+    reasons: list[PlanningReason] = Field(min_length=1)
 
 
-def plan_simulation(payload: Mapping[str, object] | SimulationSpec) -> SimulationPlan:
-    if isinstance(payload, SimulationSpec):
-        return create_simulation_plan(payload)
+PlanningResult = PlannedSimulation | PlanningCapabilityResult
 
-    reasons = _prevalidate_supported_payload(payload)
+
+def plan_simulation(
+    spec: SimulationSpec,
+    case_build_spec: CaseBuildSpec,
+) -> PlanningResult:
+    reasons = _capability_reasons(spec, case_build_spec)
     if reasons:
-        raise PlanningRejected(PlanningRejection(reasons=reasons))
+        return PlanningCapabilityResult(reasons=reasons)
 
-    try:
-        spec = SimulationSpec.model_validate(payload)
-    except ValidationError as error:
-        raise PlanningRejected(
-            PlanningRejection(reasons=_validation_reasons(error))
-        ) from error
-
-    return create_simulation_plan(spec)
+    return PlannedSimulation(plan=create_simulation_plan(spec, case_build_spec))
 
 
-def planning_rejection_to_json(rejection: PlanningRejection) -> str:
-    return json.dumps(rejection.model_dump(mode="json"), indent=2, sort_keys=True) + "\n"
+def planning_result_to_json(result: PlanningResult) -> str:
+    return json.dumps(result.model_dump(mode="json"), indent=2, sort_keys=True) + "\n"
 
 
-def _prevalidate_supported_payload(
-    payload: Mapping[str, object],
-) -> list[PlanningRejectionReason]:
-    required_fields = (
-        "case_name",
-        "solver_family",
-        "geometry",
-        "mesh",
-        "fluid",
-        "boundary_conditions",
-        "run_control",
-    )
-    for field_name in required_fields:
-        if field_name not in payload:
-            return [_missing_input(field_name)]
+def _capability_reasons(
+    spec: SimulationSpec,
+    case_build_spec: CaseBuildSpec,
+) -> list[PlanningReason]:
+    reasons: list[PlanningReason] = []
 
-    if "physics" in payload:
-        return [
-            PlanningRejectionReason(
-                code="planner.unsupported_physics",
-                message="Unsupported physics request.",
-                path="physics",
+    if spec.case_name != case_build_spec.case_name:
+        reasons.append(
+            PlanningReason(
+                code="planner.case_name_mismatch",
+                message="Simulation spec and case-build spec case names differ.",
+                path="case_name",
             )
-        ]
-
-    if payload.get("solver_family") != "incompressible_laminar":
-        return [
-            PlanningRejectionReason(
-                code="planner.unsupported_solver_family",
-                message="Unsupported solver family.",
+        )
+    if spec.solver_family != case_build_spec.solver_family:
+        reasons.append(
+            PlanningReason(
+                code="planner.solver_family_mismatch",
+                message="Simulation spec and case-build spec solver families differ.",
                 path="solver_family",
             )
-        ]
+        )
+    if spec.geometry.kind != case_build_spec.geometry.kind:
+        reasons.append(
+            PlanningReason(
+                code="planner.geometry_mismatch",
+                message="Simulation spec and case-build spec geometry kinds differ.",
+                path="geometry.kind",
+            )
+        )
+    if spec.mesh.kind != case_build_spec.mesh.kind:
+        reasons.append(
+            PlanningReason(
+                code="planner.mesh_mismatch",
+                message="Simulation spec and case-build spec mesh kinds differ.",
+                path="mesh.kind",
+            )
+        )
 
-    geometry = payload.get("geometry")
-    if isinstance(geometry, Mapping) and geometry.get("kind") != "cavity":
+    if reasons:
+        return reasons
+
+    if spec.geometry.kind != "cavity":
         return [
-            PlanningRejectionReason(
+            PlanningReason(
                 code="planner.unsupported_geometry",
-                message="Unsupported geometry kind.",
+                message="No deterministic case-build writer currently supports this geometry.",
                 path="geometry.kind",
             )
         ]
 
-    mesh = payload.get("mesh")
-    if isinstance(mesh, Mapping) and mesh.get("kind") != "structured":
-        return [
-            PlanningRejectionReason(
+    reasons.extend(_simulation_spec_capability_reasons(spec))
+    reasons.extend(_case_build_capability_reasons(case_build_spec))
+
+    return _unique_reasons(reasons)
+
+
+def _simulation_spec_capability_reasons(spec: SimulationSpec) -> list[PlanningReason]:
+    reasons: list[PlanningReason] = []
+
+    if spec.geometry.dimensions.model_dump(mode="json") != {
+        "length": 1.0,
+        "width": 1.0,
+        "height": 0.1,
+    }:
+        reasons.append(
+            PlanningReason(
+                code="planner.unsupported_geometry_dimensions",
+                message="The current cavity writer only supports a 1 x 1 x 0.1 cavity.",
+                path="geometry.dimensions",
+            )
+        )
+
+    if spec.mesh.kind != SUPPORTED_CAVITY_MESH:
+        reasons.append(
+            PlanningReason(
                 code="planner.unsupported_mesh",
-                message="Unsupported mesh kind.",
+                message="The current cavity writer only supports structured meshes.",
                 path="mesh.kind",
             )
-        ]
-
-    template_reason = _template_parameter_reason(payload)
-    if template_reason is not None:
-        return [template_reason]
-
-    return []
-
-
-def _validation_reasons(error: ValidationError) -> list[PlanningRejectionReason]:
-    reasons: list[PlanningRejectionReason] = []
-    for item in error.errors():
-        path = ".".join(str(part) for part in item["loc"])
-        if item["type"] == "missing":
-            reasons.append(_missing_input(path))
-        else:
-            reasons.append(
-                PlanningRejectionReason(
-                    code="planner.invalid_input",
-                    message=str(item["msg"]),
-                    path=path or ".",
-                    metadata={"type": str(item["type"])},
-                )
+        )
+    if spec.mesh.cells.model_dump(mode="json") != {"x": 20, "y": 20, "z": 1}:
+        reasons.append(
+            PlanningReason(
+                code="planner.unsupported_mesh_cells",
+                message="The current cavity writer only supports a 20 x 20 x 1 mesh.",
+                path="mesh.cells",
             )
-    return reasons or [_missing_input(".")]
+        )
+
+    if spec.fluid.kinematic_viscosity != 0.01:
+        reasons.append(
+            PlanningReason(
+                code="planner.unsupported_kinematic_viscosity",
+                message="The current cavity writer only supports nu = 0.01.",
+                path="fluid.kinematic_viscosity",
+            )
+        )
+
+    if spec.run_control.model_dump(mode="json") != {
+        "start_time": 0.0,
+        "end_time": 0.5,
+        "time_step": 0.005,
+        "write_interval": 0.1,
+    }:
+        reasons.append(
+            PlanningReason(
+                code="planner.unsupported_run_control",
+                message="The current cavity writer only supports the checked-in run controls.",
+                path="run_control",
+            )
+        )
+
+    if _boundary_condition_fingerprint(spec) != _expected_cavity_boundary_conditions():
+        reasons.append(
+            PlanningReason(
+                code="planner.unsupported_boundary_conditions",
+                message="The current cavity writer only supports the reference cavity boundaries.",
+                path="boundary_conditions",
+            )
+        )
+
+    return reasons
 
 
-def _missing_input(path: str) -> PlanningRejectionReason:
-    return PlanningRejectionReason(
-        code="planner.missing_input",
-        message="Required simulation input is missing.",
-        path=path,
+def _case_build_capability_reasons(
+    case_build_spec: CaseBuildSpec,
+) -> list[PlanningReason]:
+    return [
+        PlanningReason(
+            code=_planner_code(issue),
+            message=issue.message,
+            path=issue.path,
+        )
+        for issue in case_build_writer_capability_issues(case_build_spec)
+    ]
+
+
+def _planner_code(issue: CaseBuildCapabilityIssue) -> str:
+    return f"planner.{issue.code.removeprefix('case_build.')}"
+
+
+def _unique_reasons(reasons: list[PlanningReason]) -> list[PlanningReason]:
+    unique: list[PlanningReason] = []
+    seen: set[tuple[str, str]] = set()
+    for reason in reasons:
+        identity = (reason.code, reason.path)
+        if identity in seen:
+            continue
+        seen.add(identity)
+        unique.append(reason)
+    return unique
+
+
+def _boundary_condition_fingerprint(
+    spec: SimulationSpec,
+) -> list[tuple[str, str, str, str]]:
+    return sorted(
+        (
+            condition.patch,
+            condition.field,
+            condition.kind,
+            json.dumps(condition.value, sort_keys=True),
+        )
+        for condition in spec.boundary_conditions
     )
 
 
-def _template_parameter_reason(
-    payload: Mapping[str, object],
-) -> PlanningRejectionReason | None:
-    mesh = payload.get("mesh")
-    if not isinstance(mesh, Mapping):
-        return None
-    cells = mesh.get("cells")
-    if not isinstance(cells, Mapping):
-        return None
-
-    supported_cells = {"x": 20, "y": 20, "z": 1}
-    for axis, supported_value in supported_cells.items():
-        received = cells.get(axis)
-        if received != supported_value:
-            return PlanningRejectionReason(
-                code="planner.unsupported_template_parameter",
-                message="Cavity template parameter is not supported yet.",
-                path=f"mesh.cells.{axis}",
-                metadata={
-                    "received": str(received),
-                    "supported": str(supported_value),
-                },
-            )
-    return None
+def _expected_cavity_boundary_conditions() -> list[tuple[str, str, str, str]]:
+    return sorted(
+        [
+            ("movingWall", "U", "fixedValue", "[1.0, 0.0, 0.0]"),
+            ("fixedWalls", "U", "noSlip", "null"),
+            ("frontAndBack", "U", "empty", "null"),
+            ("movingWall", "p", "zeroGradient", "null"),
+            ("fixedWalls", "p", "zeroGradient", "null"),
+            ("frontAndBack", "p", "empty", "null"),
+        ]
+    )

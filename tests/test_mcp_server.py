@@ -23,7 +23,9 @@ def test_build_server_registers_open_navier_mcp_tools() -> None:
     assert server.tool_names == [
         "workspace_inspect",
         "spec_validate",
-        "case_init_cavity",
+        "case_build_validate",
+        "case_build_dry_run",
+        "case_build_write",
         "case_validate_structure",
         "diagnostics_residuals",
     ]

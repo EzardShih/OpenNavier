@@ -1,10 +1,12 @@
 # OpenNavier
 
 OpenNavier is a local-first OpenFOAM automation and diagnostics CLI. The P0
-slice focuses on deterministic starter cases, case inspection, explicit solver
-execution, auditable run logs, diagnostics artifacts, Markdown reports,
+slice focuses on schema-backed case-build contracts, case inspection, explicit
+solver execution, auditable run logs, diagnostics artifacts, Markdown reports,
 simulation plan artifacts, tested tool adapters, and an initial desktop
-scaffold.
+scaffold. The legacy cavity starter remains available as a reference workflow,
+but new planning work uses validated `CaseBuildSpec` data instead of selecting
+case templates.
 
 Your geometry, mesh, logs, and results stay on your machine by default. The CLI
 does not upload case data to a cloud service.
@@ -50,7 +52,9 @@ The first MCP tool surface is deterministic and file-oriented:
 
 - `workspace_inspect`
 - `spec_validate`
-- `case_init_cavity`
+- `case_build_validate`
+- `case_build_dry_run`
+- `case_build_write`
 - `case_validate_structure`
 - `diagnostics_residuals`
 
@@ -59,7 +63,7 @@ and OpenFOAM package APIs as the CLI.
 
 ## CLI
 
-Create a starter lid-driven cavity case:
+Create a reference lid-driven cavity case with the legacy starter command:
 
 ```bash
 opennavier init cavity ./runs/cavity-001
@@ -132,7 +136,8 @@ dictionaries are present. `doctor` and `report` parse recognized optional
 be installed.
 
 The core package also includes local-only simulation plan and planner contracts
-that map a validated cavity `SimulationSpec` to deterministic commands,
-approval checkpoints, expected artifacts, diagnostics, and reports. Unsupported
-or incomplete planning requests are rejected with structured reasons instead of
-partial plans.
+that map a validated `SimulationSpec` plus validated `CaseBuildSpec` to
+deterministic case-build operations, commands, approval checkpoints, expected
+artifacts, diagnostics, and reports. Missing or ambiguous simulation intake is
+left for the clarification loop; the planner reports complete-but-not-executable
+capabilities without creating partial plans.

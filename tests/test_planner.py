@@ -1,7 +1,9 @@
 import json
 
-import pytest
-from opennavier_core.planner import PlanningRejected, plan_simulation, planning_rejection_to_json
+from opennavier_core.case_build_spec import CaseBuildSpec
+from opennavier_core.planner import plan_simulation, planning_result_to_json
+from opennavier_core.simulation_spec import SimulationSpec
+from test_case_build_spec import minimal_cavity_case_build_payload
 
 
 def minimal_cavity_payload() -> dict[str, object]:
@@ -43,12 +45,18 @@ def minimal_cavity_payload() -> dict[str, object]:
 
 
 def test_planner_accepts_cavity_payload_and_keeps_order_deterministic() -> None:
-    plan = plan_simulation(minimal_cavity_payload())
+    spec = SimulationSpec.model_validate(minimal_cavity_payload())
+    case_build_spec = CaseBuildSpec.model_validate(minimal_cavity_case_build_payload())
 
-    assert plan.case_name == "lid_driven_cavity"
-    assert plan.solver == "icoFoam"
-    assert [command.id for command in plan.commands] == [
-        "initialize_cavity_case",
+    result = plan_simulation(spec, case_build_spec)
+
+    assert result.status == "planned"
+    assert result.plan.case_name == "lid_driven_cavity"
+    assert result.plan.solver == "icoFoam"
+    assert [command.id for command in result.plan.commands] == [
+        "validate_case_build_spec",
+        "dry_run_case_build",
+        "write_case_build",
         "validate_case_structure",
         "generate_mesh",
         "check_mesh",
@@ -56,112 +64,187 @@ def test_planner_accepts_cavity_payload_and_keeps_order_deterministic() -> None:
         "collect_diagnostics",
         "write_report",
     ]
-    assert [check.code for check in plan.pre_flight_checks] == sorted(
-        check.code for check in plan.pre_flight_checks
+    assert [check.code for check in result.plan.pre_flight_checks] == sorted(
+        check.code for check in result.plan.pre_flight_checks
     )
 
 
-@pytest.mark.parametrize(
-    ("mutation", "expected_code", "expected_path"),
-    [
-        (
-            lambda payload: payload.update({"physics": "compressible"}),
-            "planner.unsupported_physics",
-            "physics",
-        ),
-        (
-            lambda payload: payload.update({"solver_family": "compressible_laminar"}),
-            "planner.unsupported_solver_family",
-            "solver_family",
-        ),
-        (
-            lambda payload: payload.update({"geometry": {"kind": "pipe"}}),
-            "planner.unsupported_geometry",
-            "geometry.kind",
-        ),
-        (
-            lambda payload: payload.update({"mesh": {"kind": "unstructured"}}),
-            "planner.unsupported_mesh",
-            "mesh.kind",
-        ),
-    ],
-)
-def test_planner_rejects_unsupported_specs_with_structured_reasons(
-    mutation: object,
-    expected_code: str,
-    expected_path: str,
+def test_planner_returns_capability_result_for_complete_unsupported_geometry(
 ) -> None:
     payload = minimal_cavity_payload()
-    mutation(payload)  # type: ignore[operator]
-
-    with pytest.raises(PlanningRejected) as raised:
-        plan_simulation(payload)
-
-    rejection = raised.value.rejection
-    assert rejection.status == "rejected"
-    assert [(reason.code, reason.path) for reason in rejection.reasons] == [
-        (expected_code, expected_path)
+    payload["geometry"] = {
+        "kind": "pipe",
+        "dimensions": {"length": 2.0, "width": 0.5, "height": 0.5},
+    }
+    build_payload = minimal_cavity_case_build_payload()
+    build_payload["geometry"] = {"kind": "pipe"}
+    build_payload["writer_operations"] = [
+        {
+            "id": "write_case_tree",
+            "operation": "openfoam.write_case_tree",
+            "parameters": {"case_family": "pipe"},
+        }
     ]
-    assert not hasattr(rejection, "commands")
 
+    result = plan_simulation(
+        SimulationSpec.model_validate(payload),
+        CaseBuildSpec.model_validate(build_payload),
+    )
 
-@pytest.mark.parametrize(
-    ("field_name", "expected_path"),
-    [
-        ("geometry", "geometry"),
-        ("mesh", "mesh"),
-        ("fluid", "fluid"),
-        ("boundary_conditions", "boundary_conditions"),
-        ("run_control", "run_control"),
-    ],
-)
-def test_planner_rejects_missing_inputs_without_partial_plan(
-    field_name: str,
-    expected_path: str,
-) -> None:
-    payload = minimal_cavity_payload()
-    del payload[field_name]
-
-    with pytest.raises(PlanningRejected) as raised:
-        plan_simulation(payload)
-
-    assert [(reason.code, reason.path) for reason in raised.value.rejection.reasons] == [
-        ("planner.missing_input", expected_path)
+    assert result.status == "not_executable"
+    assert [(reason.code, reason.path) for reason in result.reasons] == [
+        ("planner.unsupported_geometry", "geometry.kind")
     ]
 
 
-def test_planner_rejects_cavity_specs_that_do_not_match_committed_template() -> None:
+def test_planner_returns_capability_result_for_spec_and_build_mismatch(
+) -> None:
+    build_payload = minimal_cavity_case_build_payload()
+    build_payload["case_name"] = "different_case"
+
+    result = plan_simulation(
+        SimulationSpec.model_validate(minimal_cavity_payload()),
+        CaseBuildSpec.model_validate(build_payload),
+    )
+
+    assert result.status == "not_executable"
+    assert [(reason.code, reason.path) for reason in result.reasons] == [
+        ("planner.case_name_mismatch", "case_name")
+    ]
+
+
+def test_planner_rejects_cavity_mesh_values_the_writer_cannot_honor() -> None:
     payload = minimal_cavity_payload()
-    mesh = payload["mesh"]
-    assert isinstance(mesh, dict)
-    cells = mesh["cells"]
-    assert isinstance(cells, dict)
-    cells["x"] = 40
+    payload["mesh"] = {"kind": "structured", "cells": {"x": 40, "y": 30, "z": 1}}
 
-    with pytest.raises(PlanningRejected) as raised:
-        plan_simulation(payload)
+    result = plan_simulation(
+        SimulationSpec.model_validate(payload),
+        CaseBuildSpec.model_validate(minimal_cavity_case_build_payload()),
+    )
 
-    assert [
-        (reason.code, reason.path, reason.metadata)
-        for reason in raised.value.rejection.reasons
-    ] == [
+    assert result.status == "not_executable"
+    assert [(reason.code, reason.path) for reason in result.reasons] == [
+        ("planner.unsupported_mesh_cells", "mesh.cells")
+    ]
+
+
+def test_planner_returns_capability_result_for_complete_unsupported_solver_family(
+) -> None:
+    payload = minimal_cavity_payload()
+    payload["solver_family"] = "compressible_laminar"
+    build_payload = minimal_cavity_case_build_payload()
+    build_payload["solver_family"] = "compressible_laminar"
+
+    result = plan_simulation(
+        SimulationSpec.model_validate(payload),
+        CaseBuildSpec.model_validate(build_payload),
+    )
+
+    assert result.status == "not_executable"
+    assert [(reason.code, reason.path) for reason in result.reasons] == [
+        ("planner.unsupported_solver_family", "solver_family")
+    ]
+
+
+def test_planner_returns_capability_result_for_complete_unsupported_mesh() -> None:
+    payload = minimal_cavity_payload()
+    payload["mesh"] = {
+        "kind": "unstructured",
+        "cells": {"x": 20, "y": 20, "z": 1},
+    }
+    build_payload = minimal_cavity_case_build_payload()
+    build_payload["mesh"] = {"kind": "unstructured"}
+
+    result = plan_simulation(
+        SimulationSpec.model_validate(payload),
+        CaseBuildSpec.model_validate(build_payload),
+    )
+
+    assert result.status == "not_executable"
+    assert [(reason.code, reason.path) for reason in result.reasons] == [
+        ("planner.unsupported_mesh", "mesh.kind")
+    ]
+
+
+def test_planner_returns_capability_result_for_unsupported_case_build_physics() -> None:
+    build_payload = minimal_cavity_case_build_payload()
+    build_payload["physics"] = {"kind": "compressible_laminar"}
+
+    result = plan_simulation(
+        SimulationSpec.model_validate(minimal_cavity_payload()),
+        CaseBuildSpec.model_validate(build_payload),
+    )
+
+    assert result.status == "not_executable"
+    assert [(reason.code, reason.path) for reason in result.reasons] == [
+        ("planner.unsupported_physics", "physics.kind")
+    ]
+
+
+def test_planner_rejects_case_build_writer_family_the_writer_cannot_execute() -> None:
+    build_payload = minimal_cavity_case_build_payload()
+    build_payload["writer_operations"] = [
+        {
+            "id": "write_case_tree",
+            "operation": "openfoam.write_case_tree",
+            "parameters": {"case_family": "pipe"},
+        }
+    ]
+
+    result = plan_simulation(
+        SimulationSpec.model_validate(minimal_cavity_payload()),
+        CaseBuildSpec.model_validate(build_payload),
+    )
+
+    assert result.status == "not_executable"
+    assert [(reason.code, reason.path) for reason in result.reasons] == [
         (
-            "planner.unsupported_template_parameter",
-            "mesh.cells.x",
-            {"received": "40", "supported": "20"},
+            "planner.unsupported_case_build_family",
+            "writer_operations.0.parameters.case_family",
         )
     ]
 
 
-def test_planner_rejection_json_is_stable_and_sorted() -> None:
-    payload = minimal_cavity_payload()
-    del payload["boundary_conditions"]
+def test_planner_rejects_solvers_the_writer_cannot_execute_consistently() -> None:
+    build_payload = minimal_cavity_case_build_payload()
+    build_payload["solver"] = "pimpleFoam"
 
-    with pytest.raises(PlanningRejected) as raised:
-        plan_simulation(payload)
+    result = plan_simulation(
+        SimulationSpec.model_validate(minimal_cavity_payload()),
+        CaseBuildSpec.model_validate(build_payload),
+    )
 
-    first = planning_rejection_to_json(raised.value.rejection)
-    second = planning_rejection_to_json(raised.value.rejection)
+    assert result.status == "not_executable"
+    assert [(reason.code, reason.path) for reason in result.reasons] == [
+        ("planner.unsupported_solver", "solver")
+    ]
+
+
+def test_planner_rejects_case_build_specs_missing_required_validators() -> None:
+    build_payload = minimal_cavity_case_build_payload()
+    build_payload["validators"] = ["case_structure"]
+
+    result = plan_simulation(
+        SimulationSpec.model_validate(minimal_cavity_payload()),
+        CaseBuildSpec.model_validate(build_payload),
+    )
+
+    assert result.status == "not_executable"
+    assert [(reason.code, reason.path) for reason in result.reasons] == [
+        ("planner.missing_required_validator", "validators")
+    ]
+
+
+def test_planning_result_json_is_stable_and_sorted() -> None:
+    build_payload = minimal_cavity_case_build_payload()
+    build_payload["case_name"] = "different_case"
+    result = plan_simulation(
+        SimulationSpec.model_validate(minimal_cavity_payload()),
+        CaseBuildSpec.model_validate(build_payload),
+    )
+
+    first = planning_result_to_json(result)
+    second = planning_result_to_json(result)
 
     assert first == second
     assert first.endswith("\n")
@@ -169,9 +252,9 @@ def test_planner_rejection_json_is_stable_and_sorted() -> None:
     assert list(loaded) == sorted(loaded)
     assert loaded["reasons"] == [
         {
-            "code": "planner.missing_input",
-            "message": "Required simulation input is missing.",
+            "code": "planner.case_name_mismatch",
+            "message": "Simulation spec and case-build spec case names differ.",
             "metadata": {},
-            "path": "boundary_conditions",
+            "path": "case_name",
         }
     ]

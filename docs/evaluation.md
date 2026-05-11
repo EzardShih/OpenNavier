@@ -31,7 +31,7 @@ user intent or spec
 The current implemented slice is smaller:
 
 ```text
-case template or existing case
+case-build spec or existing case
 -> case validation
 -> optional log diagnostics
 -> Markdown report
@@ -205,7 +205,7 @@ Pass criteria:
 - The report states when the comparison is not physically appropriate.
 
 Current status: future eval. The Gmsh and FreeCAD adapters exist, but the
-planner, duct template, solver execution, and pressure-drop comparison do not.
+planner, duct case-build coverage, solver execution, and pressure-drop comparison do not.
 
 ### EVAL-AI-SPEC: Prompt To Validated Simulation Spec
 

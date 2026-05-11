@@ -82,12 +82,37 @@ def test_simulation_spec_accepts_json_like_llm_output() -> None:
     assert spec.boundary_conditions[-1].kind == "empty"
 
 
-def test_simulation_spec_rejects_unknown_solver_family() -> None:
+def test_simulation_spec_accepts_complete_unsupported_solver_family_intent() -> None:
     payload = minimal_cavity_spec()
-    payload["solver_family"] = "llm_generated_magic_solver"
+    payload["solver_family"] = "compressible_laminar"
 
-    with pytest.raises(ValidationError, match="solver_family"):
-        SimulationSpec.model_validate(payload)
+    spec = SimulationSpec.model_validate(payload)
+
+    assert spec.solver_family == "compressible_laminar"
+
+
+def test_simulation_spec_accepts_complete_unsupported_mesh_intent() -> None:
+    payload = minimal_cavity_spec()
+    payload["mesh"] = {
+        "kind": "unstructured",
+        "cells": {"x": 20, "y": 20, "z": 1},
+    }
+
+    spec = SimulationSpec.model_validate(payload)
+
+    assert spec.mesh.kind == "unstructured"
+
+
+def test_simulation_spec_accepts_non_cavity_geometry_intent() -> None:
+    payload = minimal_cavity_spec()
+    payload["geometry"] = {
+        "kind": "pipe",
+        "dimensions": {"length": 2.0, "width": 0.5, "height": 0.5},
+    }
+
+    spec = SimulationSpec.model_validate(payload)
+
+    assert spec.geometry.kind == "pipe"
 
 
 def test_simulation_spec_rejects_missing_boundary_conditions() -> None:

@@ -1,7 +1,11 @@
 from collections.abc import Callable
 from typing import Any
 
-from opennavier.mcp.case_init_tools import case_init_cavity
+from opennavier.mcp.case_build_tools import (
+    case_build_dry_run,
+    case_build_validate,
+    case_build_write,
+)
 from opennavier.mcp.case_validation_tools import case_validate_structure
 from opennavier.mcp.diagnostics_tools import diagnostics_residuals
 from opennavier.mcp.spec_tools import spec_validate
@@ -10,7 +14,9 @@ from opennavier.mcp.workspace_tools import workspace_inspect
 TOOL_FUNCTIONS = (
     workspace_inspect,
     spec_validate,
-    case_init_cavity,
+    case_build_validate,
+    case_build_dry_run,
+    case_build_write,
     case_validate_structure,
     diagnostics_residuals,
 )
