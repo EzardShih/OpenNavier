@@ -105,8 +105,8 @@ Example manifest shape:
     {
       "kind": "openfoam_case",
       "path": "case",
-      "producer": "case_init_duct",
-      "inputs": ["specs/simulation.json"]
+      "producer": "case_build_write",
+      "inputs": ["specs/simulation.json", "specs/case-build.json"]
     },
     {
       "kind": "diagnostics",
@@ -201,14 +201,14 @@ These tools work with validated `SimulationSpec` data.
 
 ### Case Tools
 
-These tools create and inspect OpenFOAM case files through deterministic
-generators and validators.
+These tools validate, dry-run, write, and inspect OpenFOAM case files through
+schema-backed `CaseBuildSpec` data and deterministic writer operations.
 
 | Tool | Mutates | Purpose |
 | --- | --- | --- |
-| `case_init_cavity` | Yes | Create a deterministic lid-driven cavity case from a validated spec. |
-| `case_init_duct` | Yes | Create a deterministic duct pressure-drop case once that template exists. |
-| `case_init_pipe` | Yes | Create a deterministic pipe-flow case once that template exists. |
+| `case_build_validate` | No | Validate a user- or model-proposed `CaseBuildSpec` without writing files. |
+| `case_build_dry_run` | No | Return planned writer operations, validators, expected artifacts, and approval points. |
+| `case_build_write` | Yes | Write case files only through validated writer operations and path guards. |
 | `case_inspect_dictionaries` | No | Read OpenFOAM dictionary summaries without modifying the case. |
 | `case_validate_structure` | No | Run required directory and dictionary-header checks. |
 | `case_validate_boundary_conditions` | No | Compare mesh patches with `0/U` and `0/p` boundary fields. |
@@ -282,8 +282,9 @@ Recommended sequence:
 3. Expose read-only workspace tools first.
 4. Expose `spec_read`, `spec_write`, and `spec_validate` using the existing
    `SimulationSpec` model.
-5. Expose `case_init_cavity`, `case_validate_structure`, and
-   `case_validate_boundary_conditions` through existing OpenFOAM package APIs.
+5. Expose `case_build_validate`, `case_build_dry_run`, `case_build_write`,
+   `case_validate_structure`, and `case_validate_boundary_conditions` through
+   existing core/OpenFOAM package APIs.
 6. Expose diagnostics tools for mesh quality and residual parsing.
 7. Add local execution tools only after subprocess behavior and log paths are
    covered by focused tests.
@@ -329,7 +330,8 @@ Agent:
 1. Calls workspace_create_simulation.
 2. Calls spec_write with a candidate SimulationSpec.
 3. Calls spec_validate and spec_validate_physical_bounds.
-4. Calls case_init_duct when the template exists.
+4. Proposes a typed `CaseBuildSpec`, then calls case_build_validate,
+   case_build_dry_run, and case_build_write when deterministic support exists.
 5. Calls case_validate_structure and case_validate_boundary_conditions.
 6. Calls execution_run_block_mesh, execution_run_check_mesh, and execution_run_solver.
 7. Calls diagnostics_run_all.

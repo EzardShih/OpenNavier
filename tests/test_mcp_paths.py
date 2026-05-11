@@ -9,7 +9,7 @@ from opennavier.mcp.paths import WorkspacePathError, resolve_workspace_path, res
 
 @pytest.fixture
 def workspace_tmp_path() -> Generator[Path, None, None]:
-    path = Path(".tmp") / f"mcp-paths-{uuid4().hex}"
+    path = Path("tests") / ".tmp" / f"mcp-paths-{uuid4().hex}"
     path.mkdir(parents=True)
     try:
         yield path
@@ -37,3 +37,21 @@ def test_resolve_workspace_path_rejects_paths_that_escape_workspace(
 ) -> None:
     with pytest.raises(WorkspacePathError, match="escapes workspace root"):
         resolve_workspace_path(workspace_tmp_path, "../outside.json")
+
+
+@pytest.mark.parametrize(
+    "relative_path",
+    [
+        "/tmp/outside.json",
+        "C:case",
+        "C:/outside/case",
+        "//server/share/case",
+        "~/case",
+    ],
+)
+def test_resolve_workspace_path_rejects_host_specific_path_syntax(
+    workspace_tmp_path: Path,
+    relative_path: str,
+) -> None:
+    with pytest.raises(WorkspacePathError, match="workspace-relative"):
+        resolve_workspace_path(workspace_tmp_path, relative_path)

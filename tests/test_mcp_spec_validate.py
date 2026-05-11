@@ -109,7 +109,7 @@ def test_spec_validate_reads_json_spec_inside_workspace(workspace_tmp_path: Path
 
 def test_spec_validate_reports_pydantic_errors(workspace_tmp_path: Path) -> None:
     payload = minimal_cavity_spec()
-    payload["solver_family"] = "unsupported"
+    payload["mesh"]["cells"]["x"] = 0  # type: ignore[index]
 
     result = spec_validate(workspace_root=str(workspace_tmp_path), spec=payload)
 
@@ -117,8 +117,8 @@ def test_spec_validate_reports_pydantic_errors(workspace_tmp_path: Path) -> None
     assert result["spec"] is None
     assert result["source"] == "payload"
     assert result["errors"]
-    assert result["errors"][0]["type"] == "literal_error"
-    assert "solver_family" in result["errors"][0]["message"]
+    assert result["errors"][0]["type"] == "greater_than"
+    assert "mesh.cells.x" in result["errors"][0]["message"]
 
 
 def test_spec_validate_reports_malformed_json(workspace_tmp_path: Path) -> None:
