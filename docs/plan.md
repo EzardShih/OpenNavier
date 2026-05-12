@@ -16,6 +16,17 @@ The key market opening is that many AI/CAE players are moving cloud-first: SimSc
 
 **Cursor for OpenFOAM, FreeCAD, Gmsh, and ParaView — but local-first and open-source.**
 
+Post-P3 positioning:
+
+> **An open-source, AI-native simulation operating system: multi-solver over
+> time, OpenFOAM-first in the first product slice, and always
+> capability-gated.**
+
+In this roadmap, "universal simulator" means unified orchestration,
+validation, evidence, reports, and extension contracts over many specialized
+solvers. It does not mean OpenNavier becomes one solver that can solve every
+physics problem by itself.
+
 ## Initial user
 
 Do **not** start with enterprise aerospace. Start with users who already feel pain but can adopt without procurement:
@@ -556,6 +567,35 @@ Features:
 * report export
 * team license
 * optional private model / API support
+
+---
+
+## Post-P3 Simulation OS roadmap
+
+After P0 to P3, OpenNavier should grow from an OpenFOAM-first copilot into a
+multi-solver simulation OS. The order still follows the same trust rule:
+capabilities become executable only when their physics, geometry, mesh, solver,
+validators, benchmarks, artifacts, and reports are declared and tested.
+
+| Priority | Roadmap layer | Product meaning |
+| --- | --- | --- |
+| P4 | Capability registry and OS kernel | The planner, Studio, MCP tools, and LLM layer can only claim support through declared `CapabilityManifest` records. |
+| P5 | Unified simulation ontology | CFD, FEA, thermal, and later domains share typed units, fields, materials, boundaries, objectives, and result artifacts. |
+| P6 | Multi-solver adapter SDK | Solvers integrate through auditable local adapter contracts for discovery, input writing, execution, logs, diagnostics, results, and licensing. |
+| P7 | FEA and thermal expansion | The first non-CFD capabilities prove the architecture with narrow linear elastic and thermal workflows. |
+| P8 | Verification and evidence corpus | Benchmarks, analytical sanity checks, convergence evidence, and validation reports gate capability promotion. |
+| P9 | Geometry and mesh preparation | CAD operations, semantic boundary tagging, mesh strategy, and model cleanup become reproducible local artifacts. |
+| P10 | Coupled workflow graphs | Staged multi-solver workflows use explicit DAGs, unit-checked handoffs, approvals, retries, and partial-result handling. |
+| P11 | Plugin ecosystem and certification | Community extensions contribute adapters and capabilities through manifests, sandbox rules, tests, benchmarks, and trust states. |
+| P12 | AI-native capability authoring | Agents help draft capabilities, tests, schemas, examples, and docs, but humans and deterministic evidence control promotion. |
+
+This long-term roadmap keeps the local-first promise intact:
+
+* no cloud upload by default
+* no hidden solver commands
+* no LLM-authored raw solver files outside approved writers
+* no executable claim without a capability manifest and benchmark evidence
+* no broad domain promise until adapters, validators, and reports exist
 
 ---
 
