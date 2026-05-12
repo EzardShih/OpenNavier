@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from opennavier_core.case_build_spec import (
     SUPPORTED_CAVITY_MESH,
+    SUPPORTED_DUCT_MESH,
     CaseBuildCapabilityIssue,
     CaseBuildSpec,
     case_build_writer_capability_issues,
@@ -94,7 +95,7 @@ def _capability_reasons(
     if reasons:
         return reasons
 
-    if spec.geometry.kind != "cavity":
+    if spec.geometry.kind not in {"cavity", "duct"}:
         return [
             PlanningReason(
                 code="planner.unsupported_geometry",
@@ -110,6 +111,14 @@ def _capability_reasons(
 
 
 def _simulation_spec_capability_reasons(spec: SimulationSpec) -> list[PlanningReason]:
+    if spec.geometry.kind == "duct":
+        return _duct_simulation_spec_capability_reasons(spec)
+    return _cavity_simulation_spec_capability_reasons(spec)
+
+
+def _cavity_simulation_spec_capability_reasons(
+    spec: SimulationSpec,
+) -> list[PlanningReason]:
     reasons: list[PlanningReason] = []
 
     if spec.geometry.dimensions.model_dump(mode="json") != {
@@ -177,6 +186,74 @@ def _simulation_spec_capability_reasons(spec: SimulationSpec) -> list[PlanningRe
     return reasons
 
 
+def _duct_simulation_spec_capability_reasons(spec: SimulationSpec) -> list[PlanningReason]:
+    reasons: list[PlanningReason] = []
+
+    if spec.geometry.dimensions.model_dump(mode="json") != {
+        "length": 1.0,
+        "width": 0.1,
+        "height": 0.1,
+    }:
+        reasons.append(
+            PlanningReason(
+                code="planner.unsupported_geometry_dimensions",
+                message="The current duct writer only supports a 1 x 0.1 x 0.1 duct.",
+                path="geometry.dimensions",
+            )
+        )
+
+    if spec.mesh.kind != SUPPORTED_DUCT_MESH:
+        reasons.append(
+            PlanningReason(
+                code="planner.unsupported_mesh",
+                message="The current duct writer only supports structured meshes.",
+                path="mesh.kind",
+            )
+        )
+    if spec.mesh.cells.model_dump(mode="json") != {"x": 40, "y": 4, "z": 4}:
+        reasons.append(
+            PlanningReason(
+                code="planner.unsupported_mesh_cells",
+                message="The current duct writer only supports a 40 x 4 x 4 mesh.",
+                path="mesh.cells",
+            )
+        )
+
+    if spec.fluid.kinematic_viscosity != 1.5e-5:
+        reasons.append(
+            PlanningReason(
+                code="planner.unsupported_kinematic_viscosity",
+                message="The current duct writer only supports nu = 1.5e-5.",
+                path="fluid.kinematic_viscosity",
+            )
+        )
+
+    if spec.run_control.model_dump(mode="json") != {
+        "start_time": 0.0,
+        "end_time": 1000.0,
+        "time_step": 1.0,
+        "write_interval": 100.0,
+    }:
+        reasons.append(
+            PlanningReason(
+                code="planner.unsupported_run_control",
+                message="The current duct writer only supports the checked-in run controls.",
+                path="run_control",
+            )
+        )
+
+    if _boundary_condition_fingerprint(spec) != _expected_duct_boundary_conditions():
+        reasons.append(
+            PlanningReason(
+                code="planner.unsupported_boundary_conditions",
+                message="The current duct writer only supports the reference duct boundaries.",
+                path="boundary_conditions",
+            )
+        )
+
+    return reasons
+
+
 def _case_build_capability_reasons(
     case_build_spec: CaseBuildSpec,
 ) -> list[PlanningReason]:
@@ -229,5 +306,18 @@ def _expected_cavity_boundary_conditions() -> list[tuple[str, str, str, str]]:
             ("movingWall", "p", "zeroGradient", "null"),
             ("fixedWalls", "p", "zeroGradient", "null"),
             ("frontAndBack", "p", "empty", "null"),
+        ]
+    )
+
+
+def _expected_duct_boundary_conditions() -> list[tuple[str, str, str, str]]:
+    return sorted(
+        [
+            ("inlet", "U", "fixedValue", "[10.0, 0.0, 0.0]"),
+            ("outlet", "U", "zeroGradient", "null"),
+            ("walls", "U", "noSlip", "null"),
+            ("inlet", "p", "zeroGradient", "null"),
+            ("outlet", "p", "fixedValue", "0.0"),
+            ("walls", "p", "zeroGradient", "null"),
         ]
     )

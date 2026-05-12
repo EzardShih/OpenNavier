@@ -34,6 +34,14 @@ class FluidSpec(SimulationSpecModel):
     kinematic_viscosity: PositiveFloat
 
 
+class UnitSpec(SimulationSpecModel):
+    length: str = Field(min_length=1)
+    velocity: str | None = Field(default=None, min_length=1)
+    pressure: str | None = Field(default=None, min_length=1)
+    density: str | None = Field(default=None, min_length=1)
+    kinematic_viscosity: str | None = Field(default=None, min_length=1)
+
+
 class BoundaryConditionSpec(SimulationSpecModel):
     patch: str
     field: Literal["U", "p"]
@@ -80,3 +88,6 @@ class SimulationSpec(SimulationSpecModel):
     fluid: FluidSpec
     boundary_conditions: list[BoundaryConditionSpec] = Field(min_length=1)
     run_control: RunControlSpec
+    units: UnitSpec | None = None
+    objective: str | None = Field(default=None, min_length=1)
+    output_expectations: list[str] = Field(default_factory=list)

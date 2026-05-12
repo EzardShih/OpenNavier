@@ -27,12 +27,14 @@ def build_reproducibility_manifest(
     case_path: Path | str,
     diagnostics: Sequence[object],
     generated_artifacts: Sequence[Path | str],
+    openfoam_executed: bool = False,
 ) -> ReproducibilityManifest:
     return ReproducibilityManifest(
         case_path=str(Path(case_path).resolve()),
         diagnostics_summary=_diagnostics_summary(diagnostics),
         diagnostic_codes=[str(diagnostic.code) for diagnostic in diagnostics],
         generated_artifacts=[str(Path(artifact).resolve()) for artifact in generated_artifacts],
+        openfoam_executed=openfoam_executed,
     )
 
 
@@ -42,6 +44,7 @@ def write_reproducibility_manifest(
     diagnostics: Sequence[object],
     generated_artifacts: Sequence[Path | str],
     output_path: Path | str,
+    openfoam_executed: bool = False,
 ) -> Path:
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -49,6 +52,7 @@ def write_reproducibility_manifest(
         case_path=case_path,
         diagnostics=diagnostics,
         generated_artifacts=generated_artifacts,
+        openfoam_executed=openfoam_executed,
     )
     output.write_text(manifest.model_dump_json(indent=2) + "\n", encoding="utf-8")
     return output

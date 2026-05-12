@@ -7,7 +7,13 @@ from opennavier.mcp.case_build_tools import (
     case_build_write,
 )
 from opennavier.mcp.case_validation_tools import case_validate_structure
-from opennavier.mcp.diagnostics_tools import diagnostics_residuals
+from opennavier.mcp.diagnostics_tools import (
+    diagnostics_artifact,
+    diagnostics_case,
+    diagnostics_mesh_quality,
+    diagnostics_residuals,
+    report_generate,
+)
 from opennavier.mcp.spec_tools import spec_validate
 from opennavier.mcp.workspace_tools import workspace_inspect
 
@@ -19,6 +25,10 @@ TOOL_FUNCTIONS = (
     case_build_write,
     case_validate_structure,
     diagnostics_residuals,
+    diagnostics_mesh_quality,
+    diagnostics_case,
+    diagnostics_artifact,
+    report_generate,
 )
 
 

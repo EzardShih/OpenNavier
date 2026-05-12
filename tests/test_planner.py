@@ -3,7 +3,10 @@ import json
 from opennavier_core.case_build_spec import CaseBuildSpec
 from opennavier_core.planner import plan_simulation, planning_result_to_json
 from opennavier_core.simulation_spec import SimulationSpec
-from test_case_build_spec import minimal_cavity_case_build_payload
+from test_case_build_spec import (
+    minimal_cavity_case_build_payload,
+    minimal_duct_case_build_payload,
+)
 
 
 def minimal_cavity_payload() -> dict[str, object]:
@@ -44,6 +47,44 @@ def minimal_cavity_payload() -> dict[str, object]:
     }
 
 
+def minimal_duct_payload() -> dict[str, object]:
+    return {
+        "case_name": "duct_pressure_drop",
+        "solver_family": "incompressible_laminar",
+        "geometry": {
+            "kind": "duct",
+            "dimensions": {"length": 1.0, "width": 0.1, "height": 0.1},
+        },
+        "mesh": {
+            "kind": "structured",
+            "cells": {"x": 40, "y": 4, "z": 4},
+        },
+        "fluid": {
+            "density": 1.225,
+            "kinematic_viscosity": 1.5e-5,
+        },
+        "boundary_conditions": [
+            {
+                "patch": "inlet",
+                "field": "U",
+                "kind": "fixedValue",
+                "value": [10.0, 0.0, 0.0],
+            },
+            {"patch": "outlet", "field": "U", "kind": "zeroGradient"},
+            {"patch": "walls", "field": "U", "kind": "noSlip"},
+            {"patch": "inlet", "field": "p", "kind": "zeroGradient"},
+            {"patch": "outlet", "field": "p", "kind": "fixedValue", "value": 0.0},
+            {"patch": "walls", "field": "p", "kind": "zeroGradient"},
+        ],
+        "run_control": {
+            "start_time": 0.0,
+            "end_time": 1000.0,
+            "time_step": 1.0,
+            "write_interval": 100.0,
+        },
+    }
+
+
 def test_planner_accepts_cavity_payload_and_keeps_order_deterministic() -> None:
     spec = SimulationSpec.model_validate(minimal_cavity_payload())
     case_build_spec = CaseBuildSpec.model_validate(minimal_cavity_case_build_payload())
@@ -66,6 +107,20 @@ def test_planner_accepts_cavity_payload_and_keeps_order_deterministic() -> None:
     ]
     assert [check.code for check in result.plan.pre_flight_checks] == sorted(
         check.code for check in result.plan.pre_flight_checks
+    )
+
+
+def test_planner_accepts_duct_payload_as_second_executable_path() -> None:
+    spec = SimulationSpec.model_validate(minimal_duct_payload())
+    case_build_spec = CaseBuildSpec.model_validate(minimal_duct_case_build_payload())
+
+    result = plan_simulation(spec, case_build_spec)
+
+    assert result.status == "planned"
+    assert result.plan.case_name == "duct_pressure_drop"
+    assert result.plan.solver == "simpleFoam"
+    assert result.plan.expected_artifacts[1].path == (
+        "./runs/duct_pressure_drop/case/system/blockMeshDict"
     )
 
 
