@@ -81,6 +81,15 @@ testable without an LLM before a higher layer depends on it.
 | P1 | Deterministic engineering workflow infrastructure. These connect existing validators, schema-backed case-build specs, runners, diagnostics, and reports into repeatable commands and tools. | Natural-language planning, Studio chat workflows, and design optimization. |
 | P2 | Model-assisted and interactive workflows. These add optional LLM intent parsing, model runner bridges, bounded fix proposals, and Studio runtime integration on top of deterministic contracts. | Autonomous parametric design loops and advanced 3D topology editing. |
 | P3 | Advanced design workspace and optimization capabilities. These are valuable later, but they should not block the first useful local OpenFOAM automation product. | Full autonomous CAD/topology generation and result-overlay UX. |
+| P4 | Capability registry and OS kernel. These make support boundaries, readiness states, dependencies, and planner gating explicit. | Multi-solver expansion, community plugins, and AI-authored capabilities. |
+| P5 | Unified simulation ontology. These define cross-solver physics, units, fields, materials, boundaries, objectives, and artifact concepts. | Non-OpenFOAM domains and adapter-neutral reports. |
+| P6 | Multi-solver adapter SDK. These define discovery, validation, writing, execution, diagnostics, results, licensing, and integration-test boundaries for solver adapters. | First-class FEA, thermal, and future solver packages. |
+| P7 | FEA and thermal domain expansion. These add the first capability-gated non-CFD workflows without promising broad CAE coverage. | Coupled workflows and domain-specific verticals such as water-dam analysis. |
+| P8 | Verification, benchmarks, and evidence corpus. These make analytical checks, fixture benchmarks, convergence studies, and evidence reports part of capability readiness. | Capability certification and AI-assisted capability authoring. |
+| P9 | Geometry, meshing, and model preparation layer. These make CAD operations, boundary tagging, mesh strategy, and model cleanup reproducible. | Arbitrary CAD cleanup, advanced topology workflows, and coupled model preparation. |
+| P10 | Coupled workflow graphs and multiphysics orchestration. These coordinate local solver DAGs, staged handoffs, approvals, retries, and partial results. | FSI-style workflows or nonlinear multiphysics claims. |
+| P11 | Plugin ecosystem, certification, and security. These let external packages contribute capabilities without bypassing sandboxing, tests, benchmarks, or review. | Community marketplace and third-party capability distribution. |
+| P12 | AI-native capability authoring and community OS. These let agents draft capabilities, tests, docs, and examples while humans and deterministic gates control promotion. | Open-ended community expansion of the simulation OS. |
 
 ### Infrastructure Build Order
 
@@ -94,6 +103,20 @@ testable without an LLM before a higher layer depends on it.
 | 6 | Agent orchestration | No-LLM inspect, validate, plan, initialize, run, diagnose, summarize workflow. | Model-guided planning, automatic fix proposals, and bounded rerun policies. | Prove the tool loop with deterministic inputs before adding reasoning variability. |
 | 7 | Model runner bridge | Provider abstraction, command construction, mocked Claude/Codex/Gemini CLI adapters, schema validation of responses. | Streaming chat UX, provider-specific prompt tuning, and user-configurable model workflows. | A model can suggest specs, plans, and explanations, but it must not bypass validation or mutate solver files directly. |
 | 8 | Parametric geometry and design loop | Pipe/duct/enclosure parameters, variant manifests, bounded sweep creation, metric extraction. | Three.js topology editing, arbitrary CAD cleanup, optimization loops, and simulation result overlays. | Design automation becomes credible only after the local simulation pipeline is reproducible. |
+
+### Simulation OS Build Order
+
+| Priority | OS layer | Build first | Build later | Context |
+| --- | --- | --- | --- | --- |
+| P4 | Capability registry and OS kernel | `CapabilityManifest`, readiness states, dependency checks, planner gating. | Remote catalogs, organization policy, and user-defined readiness workflows. | The system must know what it can and cannot execute before it grows beyond curated cases. |
+| P5 | Unified simulation ontology | Cross-solver units, fields, materials, boundaries, objectives, and artifact types. | Rich multi-physics taxonomies and domain-specific schema extensions. | Solver adapters and model prompts need one shared engineering vocabulary. |
+| P6 | Multi-solver adapter SDK | `SolverAdapter` contract, OpenFOAM reference adapter, fake-executable tests, adapter packaging template. | Production-grade structural, thermal, EM, or specialized solvers. | OpenNavier should orchestrate solvers through auditable local process boundaries instead of becoming a solver. |
+| P7 | FEA and thermal expansion | Small linear elastic and thermal capabilities with clear unsupported states. | Dam structural workflows, nonlinear mechanics, contact, radiation, and broad CAE domains. | The first non-CFD domains prove the OS architecture while keeping promises narrow. |
+| P8 | Verification and evidence corpus | `BenchmarkManifest`, analytical sanity checks, evidence reports, promotion gates. | Public benchmark suites, certification dashboards, and domain validation packs. | Capabilities become trustworthy through evidence, not through model confidence. |
+| P9 | Geometry and mesh preparation | Geometry operations, semantic boundary tags, mesh strategy, failure diagnostics. | Arbitrary CAD cleanup and automated repair for industrial assemblies. | Reproducible model preparation is a platform layer, not a hidden preprocessing step. |
+| P10 | Workflow graphs and multiphysics orchestration | `WorkflowGraph`, staged handoffs, unit checks, partial-result handling. | FSI-style co-simulation and nonlinear coupled workflows. | Multi-step simulations need explicit DAGs before they can be automated safely. |
+| P11 | Plugin ecosystem and certification | `PluginManifest`, sandbox policy, trust states, contributor workflow. | Marketplace distribution, signed plugins, and third-party certification programs. | Community extensions must pass the same trust gates as built-in capabilities. |
+| P12 | AI-native capability authoring | Draft capability generation, test and benchmark assistance, review artifacts, local catalog. | Autonomous research agents and large-scale community capability discovery. | Agents can accelerate authoring, but humans and deterministic evidence still decide promotion. |
 
 ## Validation Status
 
