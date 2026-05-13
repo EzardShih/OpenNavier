@@ -1,0 +1,25 @@
+default_install_hook_types: [pre-commit, pre-push]
+
+repos:
+  - repo: local
+    hooks:
+      - id: python-ruff
+        name: Python Ruff
+        entry: uv run ruff check . --no-cache
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: python-tests
+        name: Python Pytest
+        entry: uv run pytest
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+
+      - id: studio-check
+        name: Studio TypeScript, ESLint, and Prettier
+        entry: npm --prefix apps/studio run check
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
