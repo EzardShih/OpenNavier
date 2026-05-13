@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from opennavier_core.case_build_spec import (
     SUPPORTED_CAVITY_MESH,
+    SUPPORTED_DUCT_MESH,
     CaseBuildCapabilityError,
     CaseBuildSpec,
     case_build_writer_capability_issues,
@@ -305,6 +306,8 @@ def _validate_plan_inputs(spec: SimulationSpec, case_build_spec: CaseBuildSpec) 
         raise ValueError("mesh.kind must match between SimulationSpec and CaseBuildSpec")
     if spec.geometry.kind == "cavity":
         _validate_supported_cavity_spec(spec)
+    elif spec.geometry.kind == "duct":
+        _validate_supported_duct_spec(spec)
 
 
 def _validate_supported_cavity_spec(spec: SimulationSpec) -> None:
@@ -361,6 +364,43 @@ def _expected_cavity_boundary_conditions() -> list[tuple[str, str, str, str]]:
             ("movingWall", "p", "zeroGradient", "null"),
             ("fixedWalls", "p", "zeroGradient", "null"),
             ("frontAndBack", "p", "empty", "null"),
+        ]
+    )
+
+
+def _validate_supported_duct_spec(spec: SimulationSpec) -> None:
+    if spec.geometry.dimensions.model_dump(mode="json") != {
+        "length": 1.0,
+        "width": 0.1,
+        "height": 0.1,
+    }:
+        raise ValueError("geometry.dimensions are not supported by the duct writer")
+    if spec.mesh.kind != SUPPORTED_DUCT_MESH:
+        raise ValueError("mesh.kind is not supported by the duct writer")
+    if spec.mesh.cells.model_dump(mode="json") != {"x": 40, "y": 4, "z": 4}:
+        raise ValueError("mesh.cells are not supported by the duct writer")
+    if spec.fluid.kinematic_viscosity != 1.5e-5:
+        raise ValueError("fluid.kinematic_viscosity is not supported by the duct writer")
+    if spec.run_control.model_dump(mode="json") != {
+        "start_time": 0.0,
+        "end_time": 1000.0,
+        "time_step": 1.0,
+        "write_interval": 100.0,
+    }:
+        raise ValueError("run_control is not supported by the duct writer")
+    if _boundary_condition_fingerprint(spec) != _expected_duct_boundary_conditions():
+        raise ValueError("boundary_conditions are not supported by the duct writer")
+
+
+def _expected_duct_boundary_conditions() -> list[tuple[str, str, str, str]]:
+    return sorted(
+        [
+            ("inlet", "U", "fixedValue", "[10.0, 0.0, 0.0]"),
+            ("outlet", "U", "zeroGradient", "null"),
+            ("walls", "U", "noSlip", "null"),
+            ("inlet", "p", "zeroGradient", "null"),
+            ("outlet", "p", "fixedValue", "0.0"),
+            ("walls", "p", "zeroGradient", "null"),
         ]
     )
 

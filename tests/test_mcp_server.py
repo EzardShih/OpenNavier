@@ -28,4 +28,8 @@ def test_build_server_registers_open_navier_mcp_tools() -> None:
         "case_build_write",
         "case_validate_structure",
         "diagnostics_residuals",
+        "diagnostics_mesh_quality",
+        "diagnostics_case",
+        "diagnostics_artifact",
+        "report_generate",
     ]

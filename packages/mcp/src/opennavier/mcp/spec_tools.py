@@ -57,7 +57,7 @@ def _validate_payload(payload: Any, *, source: str) -> dict[str, object]:
 
     return {
         "valid": True,
-        "spec": spec.model_dump(mode="json", exclude_none=True),
+        "spec": spec.model_dump(mode="json", exclude_none=True, exclude_unset=True),
         "errors": [],
         "source": source,
     }

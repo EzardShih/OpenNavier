@@ -1,12 +1,11 @@
 # OpenNavier
 
-OpenNavier is a local-first OpenFOAM automation and diagnostics CLI. The P0
-slice focuses on schema-backed case-build contracts, case inspection, explicit
-solver execution, auditable run logs, diagnostics artifacts, Markdown reports,
-simulation plan artifacts, tested tool adapters, and an initial desktop
-scaffold. The legacy cavity starter remains available as a reference workflow,
-but new planning work uses validated `CaseBuildSpec` data instead of selecting
-case templates.
+OpenNavier is a local-first OpenFOAM automation and diagnostics CLI. The P1
+slice connects the P0 contracts into a deterministic no-LLM workflow: validate
+specs, plan from schema-backed `CaseBuildSpec` data, write supported cases,
+run checks or explicit solver commands, collect diagnostics, and write report
+artifacts. The legacy cavity starter remains available as a reference workflow,
+and P1 adds a second duct pressure-drop build-spec path.
 
 Your geometry, mesh, logs, and results stay on your machine by default. The CLI
 does not upload case data to a cloud service.
@@ -57,6 +56,10 @@ The first MCP tool surface is deterministic and file-oriented:
 - `case_build_write`
 - `case_validate_structure`
 - `diagnostics_residuals`
+- `diagnostics_mesh_quality`
+- `diagnostics_case`
+- `diagnostics_artifact`
+- `report_generate`
 
 Tools operate inside an explicit workspace root and use the same validated core
 and OpenFOAM package APIs as the CLI.
@@ -134,6 +137,26 @@ modifying the case.
 dictionaries are present. `doctor` and `report` parse recognized optional
 `checkMesh` and solver logs when they are present, without requiring OpenFOAM to
 be installed.
+
+## P1 package contracts
+
+P1 adds package-level contracts that future CLI, MCP, and Studio surfaces can
+call without invoking an LLM:
+
+- `opennavier_core.workflow.run_no_llm_workflow` runs the deterministic
+  inspect, validate, plan, initialize, check, optional solver, diagnose, report,
+  manifest, and summary sequence through an explicit operations adapter such as
+  `opennavier.openfoam.workflow_operations.openfoam_workflow_operations`.
+- `opennavier_core.questions` and `opennavier_core.clarification_loop` return
+  structured missing-input questions and stop at ready-to-plan,
+  complete-but-not-executable, max-turn, declined-info, or cancellation states.
+- `opennavier.openfoam.solver_compatibility.check_solver_compatibility` keeps
+  solver-family, `controlDict`, required-field, and algorithm checks separate
+  from basic case-structure validation.
+- `opennavier_core.model_runner` defines provider-neutral Claude, Codex, and
+  Gemini CLI adapter contracts, but model output still has to parse into typed
+  response models and cannot directly mutate files or include raw OpenFOAM
+  dictionaries.
 
 The core package also includes local-only simulation plan and planner contracts
 that map a validated `SimulationSpec` plus validated `CaseBuildSpec` to
