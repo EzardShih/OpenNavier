@@ -32,6 +32,23 @@ uv run python -m opennavier.cli --help
 opennavier doctor ./examples/cavity
 ```
 
+For changes under `apps/studio`, install the Studio dependencies and run the
+single frontend gate:
+
+```powershell
+cd apps/studio
+npm.cmd install
+npm.cmd run check
+```
+
+The Studio gate expands to:
+
+```powershell
+npm.cmd run typecheck
+npm.cmd run lint
+npm.cmd run format:check
+```
+
 Document any new setup, lint, or test commands in `README.md` when those files are added.
 
 ## Coding Style & Naming Conventions
@@ -52,6 +69,10 @@ Tests should not require OpenFOAM unless explicitly marked as integration tests.
 
 Before considering work complete, run the narrow test target added or changed for the task, then run the full available test suite. If the full suite cannot be run, state the blocker clearly with the exact command that should be run later.
 
+For frontend changes, also run `npm.cmd run check` from `apps/studio` before
+considering work complete. Treat TypeScript compiler warnings and ESLint errors
+as blockers, not advisory output.
+
 ## Commit & Pull Request Guidelines
 
 This directory is not currently a Git repository, so no local commit convention is available. Use concise, imperative commit messages such as `Add case structure validator` or `Document OpenFOAM doctor workflow`.
@@ -65,6 +86,11 @@ Preserve the local-first, engineer-verifiable product direction from `docs/plan.
 Before developing any new feature, read `docs/p0.md`, `docs/p1.md`, `docs/p2.md`, and `docs/p3.md`. Confirm the feature belongs to the current priority layer, verify its prerequisite steps are complete, and do not skip ahead to later-layer work unless the user explicitly asks for exploratory or documentation-only work. If a requested feature depends on incomplete earlier steps, implement or document the missing prerequisite first.
 
 Agents must follow TDD exactly: red, green, refactor. For implementation tasks, first inspect the relevant behavior, add or update tests, verify the new test fails, implement the minimal fix, verify the new test passes, then run broader validation. Do not skip the red step unless the user explicitly asks for documentation-only or exploratory work.
+
+Agents working on Studio must not rely on visual inspection or memory for
+TypeScript health. Run `npm.cmd run check` from `apps/studio` after edits, and
+keep `tsconfig.json` on modern Vite-compatible settings rather than silencing
+compiler deprecations with `ignoreDeprecations`.
 
 Use a parallel feature workflow when multiple independent features are requested. Assign exactly one subagent to each feature, and give each subagent a dedicated git worktree created from `master` with its own feature branch. Keep worktree and branch ownership separate so subagents do not edit the same feature scope.
 

@@ -26,9 +26,31 @@ uv run ruff check .
 uv run opennavier --help
 ```
 
-The `apps/studio` directory is a Tauri + React scaffold. The Python validation
-suite inspects its deterministic project files; it does not install npm
-dependencies or build the desktop app yet.
+The `apps/studio` directory is a Tauri + React scaffold. Install its Node
+dependencies before running frontend checks:
+
+```powershell
+cd apps/studio
+npm.cmd install
+npm.cmd run check
+```
+
+The Studio `check` gate runs TypeScript, ESLint, and Prettier:
+
+```powershell
+npm.cmd run typecheck
+npm.cmd run lint
+npm.cmd run format:check
+```
+
+GitHub Actions runs both the Python gate and the Studio gate on pushes and pull
+requests. To run the same guardrails locally before pushing, install
+`pre-commit` and enable both hook types:
+
+```bash
+pre-commit install
+pre-commit install --hook-type pre-push
+```
 
 If `uv` cannot initialize its default cache directory on Windows or in a
 sandboxed environment, use a workspace-local cache:

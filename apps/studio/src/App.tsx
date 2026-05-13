@@ -28,7 +28,9 @@ function App() {
         <div>
           <p className="eyebrow">OpenNavier Studio</p>
           <h1>Project Dashboard</h1>
-          <p className="local-note">Local-first, engineer-verifiable CFD workspace. No cloud upload.</p>
+          <p className="local-note">
+            Local-first, engineer-verifiable CFD workspace. No cloud upload.
+          </p>
         </div>
         <nav>
           <a href="#run-monitor">Run Monitor</a>
