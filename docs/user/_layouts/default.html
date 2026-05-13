@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% if page.title %}{{ page.title }} - {% endif %}{{ site.title }}</title>
+    <meta name="description" content="{{ site.description }}">
+    <link rel="stylesheet" href="{{ '/assets/styles.css' | relative_url }}">
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="{{ '/' | relative_url }}">OpenNavier</a>
+      <span class="tagline">Local-first OpenFOAM automation</span>
+    </header>
+    <div class="shell">
+      <nav class="sidebar" aria-label="Documentation navigation">
+        {% for item in site.nav %}
+          <a href="{{ item.url | relative_url }}" {% if page.url == item.url %}aria-current="page"{% endif %}>{{ item.title }}</a>
+        {% endfor %}
+      </nav>
+      <main class="content">
+        {{ content }}
+      </main>
+    </div>
+  </body>
+</html>
+
