@@ -40,7 +40,9 @@ MCP tools.
 A report is a Markdown summary of the inspected case. It includes diagnostic
 counts, failed checks, assumptions, reproducibility notes, and a local-only
 notice. If recognized `checkMesh` or solver logs are present, their diagnostics
-can appear in the report.
+can appear in the report. Reports also include a Visual Assets section; today
+the CLI leaves it empty unless another local integration supplies screenshot
+references.
 
 ## Manifest
 

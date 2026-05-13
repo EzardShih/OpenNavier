@@ -18,6 +18,8 @@ available as end-user workflows.
 - A second duct pressure-drop example path in the repository.
 - Local MCP tools for IDE agents.
 - Early Tauri + React Studio scaffold.
+- Package-level report visual asset hooks and ParaView script helpers for local
+  integrations.
 
 ## Not Yet Available As A User Workflow
 
@@ -26,6 +28,7 @@ available as end-user workflows.
 - Natural-language request parsing through a model.
 - LLM-generated `CaseBuildSpec` intake.
 - Automatic fix-and-rerun loops.
+- CLI or Studio-driven ParaView screenshot execution.
 - Parametric design optimization.
 - Three.js CAD/topology editing.
 - Simulation result overlays in the desktop UI.
