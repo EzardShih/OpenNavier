@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import pytest
 from opennavier_core.diagnostics import DiagnosticResult, DiagnosticStatus
 from opennavier_core.iteration_policy import IterationPolicyRequest, propose_iteration
 
@@ -63,6 +64,23 @@ def test_iteration_policy_records_rerun_command_proposals_in_session(
     assert result.session.command_records[0].runner == "proposed_rerun"
     assert result.session.command_records[0].command == ["simpleFoam", "-case", "runs/duct/case"]
     assert result.session.command_records[0].cwd == "runs/duct/case"
+
+
+def test_iteration_policy_rejects_empty_solver_command(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="solver_command"):
+        IterationPolicyRequest(
+            workspace_root=str(tmp_path),
+            case_path="runs/duct/case",
+            session_id="iteration-empty-command",
+            engineering_intent="Investigate duct convergence.",
+            solver_command=[],
+            diagnostics=[
+                failing_diagnostic(
+                    "openfoam.residuals.high_final",
+                    "runs/duct/case/log.simpleFoam",
+                )
+            ],
+        )
 
 
 def test_iteration_policy_stops_at_rerun_limit_without_proposals(

@@ -35,7 +35,7 @@ class IterationPolicyRequest(IterationPolicyModel):
     session_id: str = Field(min_length=1)
     engineering_intent: str = Field(min_length=1)
     diagnostics: list[DiagnosticResult] = Field(default_factory=list)
-    solver_command: list[str] | None = None
+    solver_command: list[str] | None = Field(default=None, min_length=1)
     completed_reruns: NonNegativeInt = 0
     max_reruns: NonNegativeInt = 2
 

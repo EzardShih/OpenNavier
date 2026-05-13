@@ -39,6 +39,7 @@ def test_write_paraview_case_screenshot_script_writes_deterministic_python(
     assert result == script_path
     assert script_path.read_text(encoding="utf-8") == (
         "# OpenNavier generated ParaView case screenshot\n"
+        "from pathlib import Path\n"
         "from paraview.simple import OpenFOAMReader, SaveScreenshot, Show, GetActiveViewOrCreate\n"
         "\n"
         f"case_path = r\"{case_path}\"\n"
@@ -51,6 +52,7 @@ def test_write_paraview_case_screenshot_script_writes_deterministic_python(
         "display = Show(reader, view)\n"
         "display.Representation = \"Surface\"\n"
         "view.ResetCamera()\n"
+        "Path(screenshot_path).parent.mkdir(parents=True, exist_ok=True)\n"
         "SaveScreenshot(screenshot_path, view, ImageResolution=view_size)\n"
     )
 
@@ -245,6 +247,8 @@ def test_prepare_paraview_report_asset_uses_deterministic_report_paths(
     assert asset.log_path == paraview_tmp_path / "reports" / "logs" / "case-surface.log"
     assert asset.integration_only is True
     assert asset.script_path.is_file()
+    assert asset.screenshot_path.parent.is_dir()
+    assert asset.log_path.parent.is_dir()
     assert (case_path / "cavity.foam").is_file()
 
 

@@ -182,6 +182,34 @@ def test_ask_intent_rejects_plan_request_that_disables_approval(
     assert "approval" in result.issues[0]["message"]
 
 
+def test_ask_intent_rejects_plan_request_with_unsupported_case_build_spec(
+    tmp_path: Path,
+) -> None:
+    case_build_spec = minimal_cavity_case_build_payload()
+    case_build_spec["writer_operations"][0]["parameters"]["case_family"] = "electronics"
+    payload = {
+        "case_build_spec": case_build_spec,
+    }
+
+    def runner(command: Sequence[str]) -> Completed:
+        return Completed(json.dumps({"kind": "plan_request", "payload": payload}))
+
+    result = ask_intent(
+        IntentRequest(
+            request_text="Plan an unsupported electronics case.",
+            workspace_root=str(tmp_path),
+            session_id="intent-plan-case-build",
+            expected_response_kind="plan_request",
+        ),
+        ModelRunnerConfig(provider="codex", command_template=["codex", "{prompt}"]),
+        command_runner=runner,
+    )
+
+    assert result.status == "rejected"
+    assert result.issues[0]["code"] == "case_build.unsupported_case_build_family"
+    assert result.session.provenance[0].action == "rejected plan_request"
+
+
 def test_ask_intent_rejects_model_text_that_attempts_direct_file_mutation(
     tmp_path: Path,
 ) -> None:

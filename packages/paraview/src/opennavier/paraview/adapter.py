@@ -43,6 +43,8 @@ def prepare_paraview_report_asset(
     script_path = report_root / "paraview" / f"{asset_name}.py"
     screenshot_path = report_root / "screenshots" / f"{asset_name}.png"
     log_path = report_root / "logs" / f"{asset_name}.log"
+    screenshot_path.parent.mkdir(parents=True, exist_ok=True)
+    log_path.parent.mkdir(parents=True, exist_ok=True)
     write_paraview_case_screenshot_script(
         script_path,
         case_path=case_path,
@@ -69,6 +71,7 @@ def write_paraview_case_screenshot_script(
     target_script_path.parent.mkdir(parents=True, exist_ok=True)
     target_script_path.write_text(
         "# OpenNavier generated ParaView case screenshot\n"
+        "from pathlib import Path\n"
         "from paraview.simple import OpenFOAMReader, SaveScreenshot, Show, GetActiveViewOrCreate\n"
         "\n"
         f'case_path = r"{reader_case_path}"\n'
@@ -81,6 +84,7 @@ def write_paraview_case_screenshot_script(
         "display = Show(reader, view)\n"
         'display.Representation = "Surface"\n'
         "view.ResetCamera()\n"
+        "Path(screenshot_path).parent.mkdir(parents=True, exist_ok=True)\n"
         "SaveScreenshot(screenshot_path, view, ImageResolution=view_size)\n",
         encoding="utf-8",
         newline="\n",

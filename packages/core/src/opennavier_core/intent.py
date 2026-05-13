@@ -198,8 +198,12 @@ def _validate_intent_payload(
             plan_request.simulation_spec
         ).model_dump(mode="json")
     if plan_request.case_build_spec is not None:
-        validation["case_build_spec"] = CaseBuildSpec.model_validate(
+        case_build_spec = CaseBuildSpec.model_validate(
             plan_request.case_build_spec
+        )
+        validation["case_build_spec"] = case_build_spec.model_dump(mode="json")
+        validation["case_build_dry_run"] = create_case_build_dry_run(
+            case_build_spec
         ).model_dump(mode="json")
     return validation
 
