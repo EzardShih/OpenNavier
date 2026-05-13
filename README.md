@@ -201,3 +201,15 @@ deterministic case-build operations, commands, approval checkpoints, expected
 artifacts, diagnostics, and reports. Missing or ambiguous simulation intake is
 left for the clarification loop; the planner reports complete-but-not-executable
 capabilities without creating partial plans.
+
+## User documentation
+
+User-facing documentation lives in `docs/user/`. It is written as plain
+Markdown so it can be published first through GitBook or GitHub Pages and later
+moved into an Astro documentation site.
+
+Start with:
+
+- `docs/user/index.md`
+- `docs/user/quick-start.md`
+- `docs/user/SUMMARY.md` for GitBook-style navigation
