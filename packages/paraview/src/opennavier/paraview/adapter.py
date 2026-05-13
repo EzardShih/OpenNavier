@@ -101,12 +101,7 @@ def _validated_asset_name(asset_name: str) -> str:
 
 
 def _openfoam_reader_case_path(case_path: Path) -> Path:
-    if not case_path.is_dir():
-        return case_path
-
-    marker_path = case_path / f"{case_path.name}.foam"
-    marker_path.touch(exist_ok=True)
-    return marker_path
+    return case_path
 
 
 def run_paraview_script(

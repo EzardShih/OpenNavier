@@ -57,7 +57,7 @@ def test_write_paraview_case_screenshot_script_writes_deterministic_python(
     )
 
 
-def test_write_paraview_case_screenshot_script_uses_foam_marker_for_case_directory(
+def test_write_paraview_case_screenshot_script_uses_case_directory_without_mutating_case(
     paraview_tmp_path: Path,
 ) -> None:
     script_path = paraview_tmp_path / "screenshot.py"
@@ -72,8 +72,8 @@ def test_write_paraview_case_screenshot_script_uses_foam_marker_for_case_directo
     )
 
     marker_path = case_path / "cavity.foam"
-    assert marker_path.is_file()
-    assert f'case_path = r"{marker_path}"\n' in script_path.read_text(encoding="utf-8")
+    assert not marker_path.exists()
+    assert f'case_path = r"{case_path}"\n' in script_path.read_text(encoding="utf-8")
 
 
 def test_run_paraview_script_invokes_command_with_script_and_writes_log(
@@ -249,7 +249,7 @@ def test_prepare_paraview_report_asset_uses_deterministic_report_paths(
     assert asset.script_path.is_file()
     assert asset.screenshot_path.parent.is_dir()
     assert asset.log_path.parent.is_dir()
-    assert (case_path / "cavity.foam").is_file()
+    assert not (case_path / "cavity.foam").exists()
 
 
 @pytest.mark.parametrize(
