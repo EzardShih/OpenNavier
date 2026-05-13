@@ -67,25 +67,35 @@ def write_paraview_case_screenshot_script(
     view_size: tuple[int, int] = (1280, 720),
 ) -> Path:
     target_script_path = Path(script_path)
-    reader_case_path = _openfoam_reader_case_path(Path(case_path))
     target_script_path.parent.mkdir(parents=True, exist_ok=True)
     target_script_path.write_text(
         "# OpenNavier generated ParaView case screenshot\n"
         "from pathlib import Path\n"
         "from paraview.simple import OpenFOAMReader, SaveScreenshot, Show, GetActiveViewOrCreate\n"
         "\n"
-        f'case_path = r"{reader_case_path}"\n'
+        f'reader_path = Path(r"{Path(case_path)}")\n'
+        "created_reader_marker = False\n"
         f'screenshot_path = r"{Path(screenshot_path)}"\n'
         f"view_size = [{view_size[0]}, {view_size[1]}]\n"
         "\n"
-        "reader = OpenFOAMReader(FileName=case_path)\n"
-        'view = GetActiveViewOrCreate("RenderView")\n'
-        "view.ViewSize = view_size\n"
-        "display = Show(reader, view)\n"
-        'display.Representation = "Surface"\n'
-        "view.ResetCamera()\n"
-        "Path(screenshot_path).parent.mkdir(parents=True, exist_ok=True)\n"
-        "SaveScreenshot(screenshot_path, view, ImageResolution=view_size)\n",
+        "if reader_path.is_dir():\n"
+        '    reader_path = reader_path / f"{reader_path.name}.foam"\n'
+        "    if not reader_path.exists():\n"
+        "        reader_path.touch()\n"
+        "        created_reader_marker = True\n"
+        "\n"
+        "try:\n"
+        "    reader = OpenFOAMReader(FileName=str(reader_path))\n"
+        '    view = GetActiveViewOrCreate("RenderView")\n'
+        "    view.ViewSize = view_size\n"
+        "    display = Show(reader, view)\n"
+        '    display.Representation = "Surface"\n'
+        "    view.ResetCamera()\n"
+        "    Path(screenshot_path).parent.mkdir(parents=True, exist_ok=True)\n"
+        "    SaveScreenshot(screenshot_path, view, ImageResolution=view_size)\n"
+        "finally:\n"
+        "    if created_reader_marker and reader_path.exists():\n"
+        "        reader_path.unlink()\n",
         encoding="utf-8",
         newline="\n",
     )
@@ -98,10 +108,6 @@ def _validated_asset_name(asset_name: str) -> str:
             "asset_name must contain only ASCII letters, numbers, underscores, or hyphens"
         )
     return asset_name
-
-
-def _openfoam_reader_case_path(case_path: Path) -> Path:
-    return case_path
 
 
 def run_paraview_script(
