@@ -61,9 +61,15 @@ def clarification_update(
     if isinstance(answer_summary, str) and answer_summary:
         answers.append(answer_summary)
 
+    case_build_spec = state.case_build_spec
+    case_build_spec_update = user_answer.get("case_build_spec")
+    if isinstance(case_build_spec_update, dict):
+        case_build_spec = case_build_spec_update
+
     return state.model_copy(
         update={
             "partial_spec": _deep_merge(state.partial_spec, partial_update),
+            "case_build_spec": case_build_spec,
             "answers": answers,
             "turns": state.turns + 1,
         }

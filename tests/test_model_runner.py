@@ -8,6 +8,8 @@ from opennavier_core.model_runner import (
     build_model_command,
     run_model_request,
 )
+from test_case_build_spec import minimal_cavity_case_build_payload
+from test_planner import minimal_cavity_payload
 
 
 class Completed:
@@ -79,6 +81,44 @@ def test_model_runner_rejects_payload_that_does_not_match_response_kind() -> Non
         )
 
 
+def test_model_runner_accepts_schema_backed_case_build_spec_paths() -> None:
+    payload = minimal_cavity_case_build_payload()
+
+    def runner(command: list[str]) -> Completed:
+        return Completed(json.dumps({"kind": "case_build_spec", "payload": payload}))
+
+    response = run_model_request(
+        ModelRunnerRequest(prompt="draft a case build spec", response_kind="case_build_spec"),
+        ModelRunnerConfig(provider="codex", command_template=["codex", "{prompt}"]),
+        command_runner=runner,
+    )
+
+    assert response.kind == "case_build_spec"
+    assert {
+        artifact["path"] for artifact in response.payload["expected_artifacts"]
+    } >= {"runs/lid_driven_cavity/case/system/controlDict"}
+
+
+def test_model_runner_accepts_schema_backed_simulation_spec_dimensions() -> None:
+    payload = minimal_cavity_payload()
+
+    def runner(command: list[str]) -> Completed:
+        return Completed(json.dumps({"kind": "simulation_spec", "payload": payload}))
+
+    response = run_model_request(
+        ModelRunnerRequest(prompt="draft a simulation spec", response_kind="simulation_spec"),
+        ModelRunnerConfig(provider="codex", command_template=["codex", "{prompt}"]),
+        command_runner=runner,
+    )
+
+    assert response.kind == "simulation_spec"
+    assert response.payload["geometry"]["dimensions"] == {
+        "length": 1.0,
+        "width": 1.0,
+        "height": 0.1,
+    }
+
+
 def test_model_runner_rejects_direct_file_mutation_or_raw_dictionary_text() -> None:
     def runner(command: list[str]) -> Completed:
         return Completed(
@@ -96,6 +136,27 @@ def test_model_runner_rejects_direct_file_mutation_or_raw_dictionary_text() -> N
         run_model_request(
             ModelRunnerRequest(prompt="write an OpenFOAM file", response_kind="case_build_spec"),
             ModelRunnerConfig(provider="gemini", command_template=["gemini", "{prompt}"]),
+            command_runner=runner,
+        )
+
+
+def test_model_runner_rejects_direct_openfoam_path_mutation_instruction() -> None:
+    def runner(command: list[str]) -> Completed:
+        return Completed(
+            json.dumps(
+                {
+                    "kind": "plan_request",
+                    "payload": {
+                        "instruction": "write system/controlDict directly",
+                    },
+                }
+            )
+        )
+
+    with pytest.raises(ModelRunnerExecutionError, match="direct file mutation"):
+        run_model_request(
+            ModelRunnerRequest(prompt="plan a direct edit", response_kind="plan_request"),
+            ModelRunnerConfig(provider="codex", command_template=["codex", "{prompt}"]),
             command_runner=runner,
         )
 

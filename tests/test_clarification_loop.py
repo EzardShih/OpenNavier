@@ -41,6 +41,31 @@ def test_clarification_loop_accumulates_answers_until_ready_to_plan() -> None:
     assert updated.answers == ["Provided the complete reference cavity spec."]
 
 
+def test_clarification_loop_accepts_case_build_spec_answer() -> None:
+    state = ClarificationState(
+        request_text="run a cavity case",
+        partial_spec=complete_cavity_intake(),
+    )
+
+    first = clarification_status(state)
+    assert first.status == "more_questions"
+    assert first.questions[0].missing_field == "case_build_spec"
+
+    updated = clarification_update(
+        state,
+        {
+            "case_build_spec": minimal_cavity_case_build_payload(),
+            "answer_summary": "Provided the validated case-build spec.",
+        },
+    )
+    status = clarification_status(updated)
+
+    assert status.status == "ready_to_plan"
+    assert status.planning_result["status"] == "planned"
+    assert updated.turns == 1
+    assert updated.answers == ["Provided the validated case-build spec."]
+
+
 def test_clarification_loop_reports_complete_but_not_executable() -> None:
     unsupported_spec = complete_cavity_intake()
     unsupported_spec["geometry"] = {

@@ -1,4 +1,5 @@
 import json
+import re
 import subprocess
 from collections.abc import Callable
 from typing import Literal
@@ -28,8 +29,15 @@ FORBIDDEN_RESPONSE_MARKERS = (
     "write file",
     "overwrite file",
     "edit file",
-    "system/controlDict",
-    "system\\controlDict",
+)
+FORBIDDEN_RESPONSE_PATTERNS = (
+    re.compile(
+        r"\b(?:write|overwrite|edit|modify|mutate)\b"
+        r"[^{}\r\n]{0,120}"
+        r"\bsystem[\\/](?:controlDict|fvSchemes|fvSolution)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(r"\bdimensions\s*\[[^\]]+\]", re.IGNORECASE),
 )
 
 
@@ -135,10 +143,11 @@ def _parse_typed_response(stdout: str) -> ModelRunnerResponse:
 def _contains_forbidden_mutation_text(value: object) -> bool:
     text = json.dumps(value, sort_keys=True) if not isinstance(value, str) else value
     lower_text = text.lower()
-    return any(
+    marker_found = any(
         marker.lower() in lower_text
         for marker in FORBIDDEN_RESPONSE_MARKERS
     )
+    return marker_found or any(pattern.search(text) for pattern in FORBIDDEN_RESPONSE_PATTERNS)
 
 
 def _validate_response_payload(response: ModelRunnerResponse) -> None:
