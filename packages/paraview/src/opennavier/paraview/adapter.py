@@ -1,7 +1,10 @@
+import re
 import subprocess
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
+
+ASSET_NAME_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]*$")
 
 
 @dataclass(frozen=True)
@@ -17,6 +20,41 @@ class ParaViewRunResult:
     @property
     def succeeded(self) -> bool:
         return self.return_code == 0
+
+
+@dataclass(frozen=True)
+class ParaViewReportAsset:
+    asset_name: str
+    script_path: Path
+    screenshot_path: Path
+    log_path: Path
+    integration_only: bool = True
+
+
+def prepare_paraview_report_asset(
+    *,
+    case_path: Path | str,
+    output_dir: Path | str,
+    asset_name: str = "case-surface",
+    view_size: tuple[int, int] = (1280, 720),
+) -> ParaViewReportAsset:
+    asset_name = _validated_asset_name(asset_name)
+    report_root = Path(output_dir)
+    script_path = report_root / "paraview" / f"{asset_name}.py"
+    screenshot_path = report_root / "screenshots" / f"{asset_name}.png"
+    log_path = report_root / "logs" / f"{asset_name}.log"
+    write_paraview_case_screenshot_script(
+        script_path,
+        case_path=case_path,
+        screenshot_path=screenshot_path,
+        view_size=view_size,
+    )
+    return ParaViewReportAsset(
+        asset_name=asset_name,
+        script_path=script_path,
+        screenshot_path=screenshot_path,
+        log_path=log_path,
+    )
 
 
 def write_paraview_case_screenshot_script(
@@ -48,6 +86,14 @@ def write_paraview_case_screenshot_script(
         newline="\n",
     )
     return target_script_path
+
+
+def _validated_asset_name(asset_name: str) -> str:
+    if not ASSET_NAME_PATTERN.fullmatch(asset_name):
+        raise ValueError(
+            "asset_name must contain only ASCII letters, numbers, underscores, or hyphens"
+        )
+    return asset_name
 
 
 def _openfoam_reader_case_path(case_path: Path) -> Path:

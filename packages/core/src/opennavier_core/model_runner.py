@@ -51,7 +51,7 @@ class ModelRunnerModel(BaseModel):
 
 class ModelRunnerRequest(ModelRunnerModel):
     prompt: str = Field(min_length=1)
-    response_kind: ResponseKind
+    response_kind: ResponseKind | None = None
 
 
 class ModelRunnerConfig(ModelRunnerModel):
@@ -110,7 +110,7 @@ def run_model_request(
         )
 
     response = _parse_typed_response(stdout)
-    if response.kind != request.response_kind:
+    if request.response_kind is not None and response.kind != request.response_kind:
         raise ModelRunnerExecutionError(
             f"Model returned {response.kind}, expected {request.response_kind}"
         )

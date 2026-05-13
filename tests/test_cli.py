@@ -10,6 +10,7 @@ import pytest
 from opennavier.cli import main
 from opennavier.cli.main import app
 from opennavier_core.diagnostics import DiagnosticResult, DiagnosticStatus
+from opennavier_core.reporting import ReportVisualAsset, write_markdown_report
 from typer.testing import CliRunner
 
 runner = CliRunner()
@@ -421,3 +422,57 @@ def test_report_writes_diagnostics_artifact(case_tmp_path: Path) -> None:
     artifact = json.loads(diagnostics_path.read_text(encoding="utf-8"))
     assert artifact["counts_by_status"] == {"FAIL": 0, "PASS": 9, "WARN": 0}
     assert artifact["diagnostics"]
+
+
+def test_markdown_report_includes_optional_visual_assets_when_available(
+    tmp_path: Path,
+) -> None:
+    case_path = tmp_path / "case"
+    screenshot_path = tmp_path / "reports" / "screenshots" / "case-surface.png"
+    script_path = tmp_path / "reports" / "paraview" / "case-surface.py"
+    log_path = tmp_path / "reports" / "logs" / "case-surface.log"
+    screenshot_path.parent.mkdir(parents=True)
+    script_path.parent.mkdir(parents=True)
+    log_path.parent.mkdir(parents=True)
+    screenshot_path.write_text("png", encoding="utf-8")
+    script_path.write_text("# script", encoding="utf-8")
+    log_path.write_text("$ pvpython", encoding="utf-8")
+
+    output = write_markdown_report(
+        case_path=case_path,
+        diagnostics=[],
+        output_path=tmp_path / "report.md",
+        visual_assets=[
+            ReportVisualAsset(
+                label="Case surface",
+                screenshot_path=screenshot_path,
+                script_path=script_path,
+                log_path=log_path,
+            )
+        ],
+    )
+
+    content = output.read_text(encoding="utf-8")
+    assert "## Visual Assets" in content
+    assert "![Case surface]" in content
+    assert str(screenshot_path) in content
+    assert str(script_path) in content
+    assert str(log_path) in content
+
+
+def test_markdown_report_handles_absent_visual_screenshot(tmp_path: Path) -> None:
+    output = write_markdown_report(
+        case_path=tmp_path / "case",
+        diagnostics=[],
+        output_path=tmp_path / "report.md",
+        visual_assets=[
+            ReportVisualAsset(
+                label="Case surface",
+                screenshot_path=tmp_path / "missing.png",
+            )
+        ],
+    )
+
+    content = output.read_text(encoding="utf-8")
+    assert "Screenshot not available: `" in content
+    assert "![Case surface]" not in content

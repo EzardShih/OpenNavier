@@ -119,6 +119,11 @@ h2 {
   background: #fff0c2;
 }
 
+.check-fail {
+  color: #84230f;
+  background: #ffe0d8;
+}
+
 .check-pending {
   color: #38434a;
   background: #e9eef1;
@@ -137,9 +142,117 @@ h2 {
   padding: 18px;
 }
 
+.panel-wide {
+  grid-column: 1 / -1;
+}
+
+.panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.local-chip,
+.state-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.local-chip {
+  color: #0e4c2b;
+  background: #dff3e7;
+}
+
+.state-chip {
+  color: #6c4600;
+  background: #fff0c2;
+}
+
 .panel p {
   margin: 0;
   color: #4a5961;
+}
+
+.request-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 220px) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.request-form label {
+  display: grid;
+  gap: 6px;
+  color: #38434a;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.request-form textarea,
+.request-form select {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid #c7d2d6;
+  border-radius: 6px;
+  padding: 9px 10px;
+  color: #172026;
+  background: #ffffff;
+  font: inherit;
+}
+
+.request-form textarea {
+  min-height: 82px;
+  resize: vertical;
+}
+
+.request-form button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 6px;
+  padding: 0 14px;
+  color: #ffffff;
+  background: #2f6f73;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.request-evidence,
+.runtime-facts {
+  display: grid;
+  gap: 8px;
+}
+
+.request-evidence {
+  grid-template-columns: max-content minmax(0, 1fr);
+}
+
+.request-evidence strong,
+.runtime-facts dt {
+  color: #5d6b72;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.runtime-facts {
+  margin: 0;
+}
+
+.runtime-facts div {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.runtime-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .command-list,
@@ -199,7 +312,13 @@ code {
   }
 
   .checks,
-  .panel-grid {
+  .panel-grid,
+  .request-form {
+    grid-template-columns: 1fr;
+  }
+
+  .request-evidence,
+  .runtime-facts div {
     grid-template-columns: 1fr;
   }
 }

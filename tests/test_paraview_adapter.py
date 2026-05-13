@@ -6,6 +6,7 @@ from uuid import uuid4
 
 import pytest
 from opennavier.paraview.adapter import (
+    prepare_paraview_report_asset,
     run_paraview_script,
     write_paraview_case_screenshot_script,
 )
@@ -222,3 +223,46 @@ def test_run_paraview_script_rejects_missing_script_without_creating_artifacts(
 
     assert not screenshot_path.exists()
     assert not (paraview_tmp_path / "log.paraview").exists()
+
+
+def test_prepare_paraview_report_asset_uses_deterministic_report_paths(
+    paraview_tmp_path: Path,
+) -> None:
+    case_path = paraview_tmp_path / "cavity"
+    case_path.mkdir()
+
+    asset = prepare_paraview_report_asset(
+        case_path=case_path,
+        output_dir=paraview_tmp_path / "reports",
+        asset_name="case-surface",
+    )
+
+    assert asset.asset_name == "case-surface"
+    assert asset.script_path == paraview_tmp_path / "reports" / "paraview" / "case-surface.py"
+    assert asset.screenshot_path == (
+        paraview_tmp_path / "reports" / "screenshots" / "case-surface.png"
+    )
+    assert asset.log_path == paraview_tmp_path / "reports" / "logs" / "case-surface.log"
+    assert asset.integration_only is True
+    assert asset.script_path.is_file()
+    assert (case_path / "cavity.foam").is_file()
+
+
+@pytest.mark.parametrize(
+    "asset_name",
+    ["../surface", "nested/surface", r"nested\surface", "case surface"],
+)
+def test_prepare_paraview_report_asset_rejects_unsafe_asset_names(
+    paraview_tmp_path: Path,
+    asset_name: str,
+) -> None:
+    case_path = paraview_tmp_path / "cavity"
+    output_dir = paraview_tmp_path / "reports"
+    case_path.mkdir()
+
+    with pytest.raises(ValueError, match="asset_name"):
+        prepare_paraview_report_asset(
+            case_path=case_path,
+            output_dir=output_dir,
+            asset_name=asset_name,
+        )
