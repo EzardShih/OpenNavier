@@ -65,3 +65,30 @@ def test_clarifying_questions_distinguish_complete_unsupported_capability() -> N
             }
         ],
     )
+
+
+def test_clarifying_questions_distinguish_not_yet_executable_physics() -> None:
+    result = build_clarifying_questions(
+        request_text="simulate compressible cavity flow",
+        partial_spec={
+            "case_name": "compressible_cavity",
+            "geometry": {"kind": "cavity"},
+            "units": {"length": "m"},
+            "fluid": {"density": 1.2, "kinematic_viscosity": 1.5e-5},
+            "boundary_conditions": [{"patch": "inlet"}],
+            "solver_family": "compressible_laminar",
+            "mesh": {"kind": "structured"},
+            "objective": "convergence",
+            "output_expectations": ["report"],
+        },
+        capability_reasons=[
+            {
+                "code": "planner.unsupported_physics",
+                "message": "Compressible physics is not executable yet.",
+                "path": "physics.kind",
+            }
+        ],
+    )
+
+    assert result.status == "complete_but_not_executable"
+    assert result.capability_reasons[0]["code"] == "planner.unsupported_physics"

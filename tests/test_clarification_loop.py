@@ -75,9 +75,15 @@ def test_clarification_loop_preserves_stop_conditions() -> None:
         ClarificationState(request_text="stop this", partial_spec={}),
         {"cancel": True},
     )
+    declined = clarification_update(
+        ClarificationState(request_text="not enough data", partial_spec={}),
+        {"declined_required_information": True},
+    )
 
     assert clarification_status(cancelled).status == "stopped"
     assert clarification_status(cancelled).stop_reason == "cancelled"
+    assert clarification_status(declined).status == "stopped"
+    assert clarification_status(declined).stop_reason == "declined_required_information"
 
     maxed = ClarificationState(
         request_text="ambiguous",
@@ -88,6 +94,39 @@ def test_clarification_loop_preserves_stop_conditions() -> None:
 
     assert clarification_status(maxed).status == "stopped"
     assert clarification_status(maxed).stop_reason == "max_turns"
+
+
+def test_clarification_loop_keeps_asking_across_repeated_turns() -> None:
+    state = ClarificationState(
+        request_text="run a cavity case",
+        partial_spec={"case_name": "lid_driven_cavity"},
+        case_build_spec=minimal_cavity_case_build_payload(),
+    )
+
+    first_update = clarification_update(
+        state,
+        {
+            "partial_spec": {"units": {"length": "m"}},
+            "answer_summary": "Provided length units.",
+        },
+    )
+    second_update = clarification_update(
+        first_update,
+        {
+            "partial_spec": {"fluid": {"density": 1.0, "kinematic_viscosity": 0.01}},
+            "answer_summary": "Provided fluid properties.",
+        },
+    )
+    status = clarification_status(second_update)
+
+    assert second_update.turns == 2
+    assert second_update.answers == [
+        "Provided length units.",
+        "Provided fluid properties.",
+    ]
+    assert status.status == "more_questions"
+    assert "geometry" in {question.missing_field for question in status.questions}
+    assert "fluid" not in {question.missing_field for question in status.questions}
 
 
 def test_clarification_loop_applies_max_turns_to_validation_followups() -> None:

@@ -12,8 +12,10 @@ from opennavier.openfoam.case_structure import validate_case_structure
 from opennavier.openfoam.init_case import CasePathNotEmptyError
 from opennavier_core.case_build_spec import (
     CaseBuildCapabilityError,
+    CaseBuildCapabilityIssue,
     CaseBuildSpec,
     case_build_spec_to_json,
+    case_build_writer_capability_issues,
     create_case_build_dry_run,
 )
 from opennavier_core.diagnostics import DiagnosticResult, DiagnosticStatus
@@ -74,12 +76,7 @@ def case_build_dry_run(
         return {
             "valid": False,
             "dry_run": None,
-            "errors": [
-                {
-                    "type": "capability_error",
-                    "message": _join_issue_messages(error.issues),
-                }
-            ],
+            "errors": _capability_error_records(error.issues),
             "source": validated["source"],
         }
     return {
@@ -123,6 +120,17 @@ def case_build_write(
 
     spec = validated["spec"]
     assert isinstance(spec, CaseBuildSpec)
+    capability_issues = case_build_writer_capability_issues(spec)
+    if capability_issues:
+        return {
+            "changed_paths": [],
+            "diagnostics": [
+                _capability_diagnostic(issue) for issue in capability_issues
+            ],
+            "provenance": provenance,
+            "next_actions": next_actions,
+        }
+
     try:
         root = resolve_workspace_root(workspace_root)
         persist_target = _prepare_persisted_spec_target(
@@ -367,6 +375,14 @@ def _failure_diagnostic(*, code: str, message: str, path: str) -> dict[str, obje
     ).model_dump(mode="json")
 
 
+def _capability_diagnostic(issue: CaseBuildCapabilityIssue) -> dict[str, object]:
+    return _failure_diagnostic(
+        code=issue.code,
+        message=issue.message,
+        path=issue.path,
+    )
+
+
 def _write_failure(
     *,
     code: str,
@@ -401,3 +417,17 @@ def _join_issue_messages(issues: object) -> str:
         if hasattr(issue, "message"):
             messages.append(str(issue.message))
     return "; ".join(messages) or "Unsupported case-build capability."
+
+
+def _capability_error_records(
+    issues: list[CaseBuildCapabilityIssue],
+) -> list[dict[str, str]]:
+    return [
+        {
+            "type": "capability_error",
+            "code": issue.code,
+            "message": issue.message,
+            "path": issue.path,
+        }
+        for issue in issues
+    ]

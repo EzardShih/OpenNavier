@@ -84,7 +84,67 @@ def test_case_build_dry_run_returns_planned_operations_without_writing(
         "path": "runs/lid_driven_cavity/case/0/U",
         "writer_operation_id": "write_case_tree",
     }
+    assert [command["id"] for command in result["dry_run"]["commands"]] == [
+        "write_case_tree",
+        "validate_case_structure",
+        "validate_boundary_conditions",
+    ]
     assert not (workspace_tmp_path / "runs" / "lid_driven_cavity" / "case").exists()
+
+
+def test_case_build_dry_run_returns_typed_capability_errors(
+    workspace_tmp_path: Path,
+) -> None:
+    payload = minimal_cavity_case_build_payload()
+    payload["validators"] = ["case_structure"]
+
+    result = case_build_dry_run(workspace_root=str(workspace_tmp_path), build_spec=payload)
+
+    assert result["valid"] is False
+    assert result["dry_run"] is None
+    assert result["errors"] == [
+        {
+            "type": "capability_error",
+            "code": "case_build.missing_required_validator",
+            "message": (
+                "The current cavity writer requires the case_structure and "
+                "boundary_conditions validators."
+            ),
+            "path": "validators",
+        }
+    ]
+
+
+def test_case_build_dry_run_distinguishes_missing_writer_and_unsupported_physics(
+    workspace_tmp_path: Path,
+) -> None:
+    missing_writer = minimal_cavity_case_build_payload()
+    missing_writer["writer_operations"][0]["operation"] = "openfoam.write_unknown_case"  # type: ignore[index]
+
+    unsupported_physics = minimal_cavity_case_build_payload()
+    unsupported_physics["physics"] = {"kind": "compressible_laminar"}
+
+    missing_writer_result = case_build_dry_run(
+        workspace_root=str(workspace_tmp_path),
+        build_spec=missing_writer,
+    )
+    unsupported_physics_result = case_build_dry_run(
+        workspace_root=str(workspace_tmp_path),
+        build_spec=unsupported_physics,
+    )
+
+    assert missing_writer_result["errors"] == [
+        {
+            "type": "capability_error",
+            "code": "case_build.missing_writer",
+            "message": "No deterministic case-build writer is available for this operation.",
+            "path": "writer_operations.0.operation",
+        }
+    ]
+    assert unsupported_physics_result["errors"][0]["code"] == (
+        "case_build.unsupported_physics"
+    )
+    assert unsupported_physics_result["errors"][0]["path"] == "physics.kind"
 
 
 def test_case_build_write_creates_case_and_refuses_unapproved_overwrite(
@@ -121,6 +181,30 @@ def test_case_build_write_creates_case_and_refuses_unapproved_overwrite(
     assert {diagnostic["code"] for diagnostic in second_result["diagnostics"]} == {
         "mcp.case_build_write.refused"
     }
+
+
+def test_case_build_write_returns_typed_capability_diagnostics_before_writing(
+    workspace_tmp_path: Path,
+) -> None:
+    payload = minimal_cavity_case_build_payload()
+    payload["physics"] = {"kind": "compressible_laminar"}
+
+    result = case_build_write(workspace_root=str(workspace_tmp_path), build_spec=payload)
+
+    assert result["changed_paths"] == []
+    assert result["diagnostics"] == [
+        {
+            "status": "FAIL",
+            "code": "case_build.unsupported_physics",
+            "message": (
+                "The current case-build writer only supports "
+                "incompressible laminar physics."
+            ),
+            "path": "physics.kind",
+            "details": {},
+        }
+    ]
+    assert not (workspace_tmp_path / "runs" / "lid_driven_cavity" / "case").exists()
 
 
 def test_case_build_write_persists_payload_spec_at_requested_path(

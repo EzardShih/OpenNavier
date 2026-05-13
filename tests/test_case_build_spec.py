@@ -142,6 +142,11 @@ def test_case_build_dry_run_reports_duct_file_operations() -> None:
         "runs/duct_pressure_drop/case/system/fvSchemes",
         "runs/duct_pressure_drop/case/system/fvSolution",
     ]
+    assert [command.id for command in dry_run.commands] == [
+        "write_case_tree",
+        "validate_case_structure",
+        "validate_boundary_conditions",
+    ]
 
 
 @pytest.mark.parametrize(
@@ -292,6 +297,22 @@ def test_case_build_capability_reports_unsupported_parameters_for_supported_fami
     ]
     with pytest.raises(CaseBuildCapabilityError, match="does not support this parameter"):
         create_case_build_dry_run(spec)
+
+
+def test_case_build_capability_reports_missing_openfoam_writer() -> None:
+    payload = minimal_cavity_case_build_payload()
+    payload["writer_operations"][0]["operation"] = "openfoam.write_unknown_case"  # type: ignore[index]
+    spec = CaseBuildSpec.model_validate(payload)
+
+    issues = case_build_writer_capability_issues(spec)
+
+    assert issues == [
+        CaseBuildCapabilityIssue(
+            code="case_build.missing_writer",
+            message="No deterministic case-build writer is available for this operation.",
+            path="writer_operations.0.operation",
+        )
+    ]
 
 
 def test_case_build_spec_json_is_stable_and_sorted() -> None:

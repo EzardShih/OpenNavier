@@ -93,7 +93,10 @@ class CaseBuildWriterOperation(CaseBuildSpecModel):
 
     @model_validator(mode="after")
     def validate_supported_typed_operation(self) -> Self:
-        if self.operation not in SUPPORTED_WRITER_OPERATIONS:
+        if (
+            self.operation not in SUPPORTED_WRITER_OPERATIONS
+            and not self.operation.startswith("openfoam.")
+        ):
             raise ValueError(
                 f"Unsupported writer operation in writer_operations: {self.operation}"
             )
@@ -134,11 +137,19 @@ class CaseBuildFileOperation(CaseBuildSpecModel):
     writer_operation_id: str = Field(min_length=1)
 
 
+class CaseBuildDryRunCommand(CaseBuildSpecModel):
+    id: str = Field(min_length=1)
+    operation: str = Field(min_length=1)
+    arguments: dict[str, object] = Field(default_factory=dict)
+    requires_approval: bool = False
+
+
 class CaseBuildDryRun(CaseBuildSpecModel):
     case_path: str = Field(min_length=1)
     file_operations: list[CaseBuildFileOperation] = Field(default_factory=list)
     writer_operations: list[CaseBuildWriterOperation] = Field(default_factory=list)
     validators: list[CaseBuildValidator] = Field(default_factory=list)
+    commands: list[CaseBuildDryRunCommand] = Field(default_factory=list)
     expected_artifacts: list[CaseBuildArtifact] = Field(default_factory=list)
     approval_checkpoints: list[CaseBuildApproval] = Field(default_factory=list)
 
@@ -211,6 +222,7 @@ def create_case_build_dry_run(spec: CaseBuildSpec) -> CaseBuildDryRun:
         file_operations=file_operations,
         writer_operations=spec.writer_operations,
         validators=spec.validators,
+        commands=_dry_run_commands(spec, writer_operation_id=writer_operation_id),
         expected_artifacts=artifacts,
         approval_checkpoints=spec.approval_checkpoints,
     )
@@ -239,6 +251,16 @@ def case_build_writer_capability_issues(
         return issues
 
     operation = spec.writer_operations[0]
+    if operation.operation not in SUPPORTED_WRITER_OPERATIONS:
+        issues.append(
+            CaseBuildCapabilityIssue(
+                code="case_build.missing_writer",
+                message="No deterministic case-build writer is available for this operation.",
+                path="writer_operations.0.operation",
+            )
+        )
+        return issues
+
     unknown_parameters = sorted(set(operation.parameters) - SUPPORTED_CASE_WRITER_PARAMETERS)
     if unknown_parameters:
         issues.append(
@@ -393,6 +415,39 @@ def _duct_capability_issues(spec: CaseBuildSpec) -> list[CaseBuildCapabilityIssu
 
 def case_build_spec_to_json(spec: CaseBuildSpec) -> str:
     return json.dumps(spec.model_dump(mode="json"), indent=2, sort_keys=True) + "\n"
+
+
+def _dry_run_commands(
+    spec: CaseBuildSpec,
+    *,
+    writer_operation_id: str,
+) -> list[CaseBuildDryRunCommand]:
+    commands = [
+        CaseBuildDryRunCommand(
+            id=writer_operation_id,
+            operation=spec.writer_operations[0].operation,
+            arguments={"case_path": spec.case_path},
+            requires_approval=True,
+        )
+    ]
+    for validator in spec.validators:
+        if validator.name == "case_structure":
+            commands.append(
+                CaseBuildDryRunCommand(
+                    id="validate_case_structure",
+                    operation="case_structure.validate",
+                    arguments={"case_path": spec.case_path},
+                )
+            )
+        elif validator.name == "boundary_conditions":
+            commands.append(
+                CaseBuildDryRunCommand(
+                    id="validate_boundary_conditions",
+                    operation="boundary_conditions.diagnose",
+                    arguments={"case_path": spec.case_path},
+                )
+            )
+    return commands
 
 
 def _looks_like_openfoam_dictionary(value: str) -> bool:
