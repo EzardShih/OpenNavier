@@ -17,6 +17,7 @@ from opennavier_core.case_build_spec import (
 from opennavier_core.model_runner import (
     CommandRunner,
     ModelRunnerConfig,
+    ModelRunnerExecutionError,
     ModelRunnerRequest,
     ResponseKind,
     run_model_request,
@@ -107,13 +108,34 @@ def ask_intent(
     *,
     command_runner: CommandRunner | None = None,
 ) -> IntentResult:
-    response = run_model_request(
-        ModelRunnerRequest(
-            prompt=build_intent_prompt(request.request_text),
-        ),
-        config,
-        command_runner=command_runner,
-    )
+    try:
+        response = run_model_request(
+            ModelRunnerRequest(
+                prompt=build_intent_prompt(request.request_text),
+            ),
+            config,
+            command_runner=command_runner,
+        )
+    except ModelRunnerExecutionError as error:
+        return IntentResult(
+            status="rejected",
+            issues=[
+                {
+                    "code": "intent.model_runner_rejected",
+                    "message": str(error),
+                    "path": "",
+                }
+            ],
+            session=_session(
+                request,
+                config,
+                action="rejected model_response",
+            ),
+            summary=(
+                "Rejected model response; the model runner could not return a safe "
+                "typed result."
+            ),
+        )
 
     try:
         validation = _validate_intent_payload(response.kind, response.payload)
@@ -198,8 +220,12 @@ def _validate_intent_payload(
             plan_request.simulation_spec
         ).model_dump(mode="json")
     if plan_request.case_build_spec is not None:
-        validation["case_build_spec"] = CaseBuildSpec.model_validate(
+        case_build_spec = CaseBuildSpec.model_validate(
             plan_request.case_build_spec
+        )
+        validation["case_build_spec"] = case_build_spec.model_dump(mode="json")
+        validation["case_build_dry_run"] = create_case_build_dry_run(
+            case_build_spec
         ).model_dump(mode="json")
     return validation
 

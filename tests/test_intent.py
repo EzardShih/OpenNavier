@@ -2,9 +2,8 @@ import json
 from collections.abc import Sequence
 from pathlib import Path
 
-import pytest
 from opennavier_core.intent import IntentRequest, ask_intent, build_intent_prompt
-from opennavier_core.model_runner import ModelRunnerConfig, ModelRunnerExecutionError
+from opennavier_core.model_runner import ModelRunnerConfig
 from test_case_build_spec import minimal_cavity_case_build_payload
 from test_planner import minimal_cavity_payload
 
@@ -182,6 +181,34 @@ def test_ask_intent_rejects_plan_request_that_disables_approval(
     assert "approval" in result.issues[0]["message"]
 
 
+def test_ask_intent_rejects_plan_request_with_unsupported_case_build_spec(
+    tmp_path: Path,
+) -> None:
+    case_build_spec = minimal_cavity_case_build_payload()
+    case_build_spec["writer_operations"][0]["parameters"]["case_family"] = "electronics"
+    payload = {
+        "case_build_spec": case_build_spec,
+    }
+
+    def runner(command: Sequence[str]) -> Completed:
+        return Completed(json.dumps({"kind": "plan_request", "payload": payload}))
+
+    result = ask_intent(
+        IntentRequest(
+            request_text="Plan an unsupported electronics case.",
+            workspace_root=str(tmp_path),
+            session_id="intent-plan-case-build",
+            expected_response_kind="plan_request",
+        ),
+        ModelRunnerConfig(provider="codex", command_template=["codex", "{prompt}"]),
+        command_runner=runner,
+    )
+
+    assert result.status == "rejected"
+    assert result.issues[0]["code"] == "case_build.unsupported_case_build_family"
+    assert result.session.provenance[0].action == "rejected plan_request"
+
+
 def test_ask_intent_rejects_model_text_that_attempts_direct_file_mutation(
     tmp_path: Path,
 ) -> None:
@@ -195,14 +222,19 @@ def test_ask_intent_rejects_model_text_that_attempts_direct_file_mutation(
             )
         )
 
-    with pytest.raises(ModelRunnerExecutionError, match="direct file mutation"):
-        ask_intent(
-            IntentRequest(
-                request_text="Patch the case directly.",
-                workspace_root=str(tmp_path),
-                session_id="intent-004",
-                expected_response_kind="plan_request",
-            ),
-            ModelRunnerConfig(provider="codex", command_template=["codex", "{prompt}"]),
-            command_runner=runner,
-        )
+    result = ask_intent(
+        IntentRequest(
+            request_text="Patch the case directly.",
+            workspace_root=str(tmp_path),
+            session_id="intent-004",
+            expected_response_kind="plan_request",
+        ),
+        ModelRunnerConfig(provider="codex", command_template=["codex", "{prompt}"]),
+        command_runner=runner,
+    )
+
+    assert result.status == "rejected"
+    assert result.kind is None
+    assert result.issues[0]["code"] == "intent.model_runner_rejected"
+    assert "direct file mutation" in result.issues[0]["message"]
+    assert result.session.provenance[0].action == "rejected model_response"

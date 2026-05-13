@@ -69,6 +69,11 @@ def test_agent_and_readme_document_quality_gates() -> None:
         assert expected in agents
 
     for expected in [
+        "npm --prefix apps/studio install",
+        "npm --prefix apps/studio run check",
+        "npm --prefix apps/studio run typecheck",
+        "npm --prefix apps/studio run lint",
+        "npm --prefix apps/studio run format:check",
         "npm.cmd install",
         "npm.cmd run check",
         "pre-commit install",

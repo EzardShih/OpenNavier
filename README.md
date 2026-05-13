@@ -27,7 +27,16 @@ uv run opennavier --help
 ```
 
 The `apps/studio` directory is a Tauri + React scaffold. Install its Node
-dependencies before running frontend checks:
+dependencies before running frontend checks.
+
+On Linux, macOS, and CI-style shells:
+
+```bash
+npm --prefix apps/studio install
+npm --prefix apps/studio run check
+```
+
+On Windows PowerShell:
 
 ```powershell
 cd apps/studio
@@ -36,6 +45,12 @@ npm.cmd run check
 ```
 
 The Studio `check` gate runs TypeScript, ESLint, and Prettier:
+
+```bash
+npm --prefix apps/studio run typecheck
+npm --prefix apps/studio run lint
+npm --prefix apps/studio run format:check
+```
 
 ```powershell
 npm.cmd run typecheck

@@ -39,10 +39,23 @@ The report includes:
 - inspected case path
 - diagnostic summary
 - failed checks
+- visual asset references when supplied by a local integration
 - assumptions
 - reproducibility notes
 - local-only/no-cloud notice
 - optional mesh-quality and residual diagnostics when logs are present
+
+## Visual Assets
+
+Reports have a Visual Assets section. By default, the CLI does not run ParaView
+or generate screenshots, so reports say that no visual assets were provided.
+
+Package-level ParaView helpers can prepare deterministic screenshot artifact
+paths, a pvpython script, and a ParaView log path for a local integration. Real
+ParaView execution is still treated as integration-only and must be triggered
+explicitly by that integration. Generated helper scripts may create a temporary
+`.foam` reader marker while ParaView runs, then remove it afterward if the
+marker did not already exist.
 
 ## Reproducibility Manifest
 

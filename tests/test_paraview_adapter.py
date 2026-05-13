@@ -39,23 +39,36 @@ def test_write_paraview_case_screenshot_script_writes_deterministic_python(
     assert result == script_path
     assert script_path.read_text(encoding="utf-8") == (
         "# OpenNavier generated ParaView case screenshot\n"
+        "from pathlib import Path\n"
         "from paraview.simple import OpenFOAMReader, SaveScreenshot, Show, GetActiveViewOrCreate\n"
         "\n"
-        f"case_path = r\"{case_path}\"\n"
+        f"reader_path = Path(r\"{case_path}\")\n"
+        "created_reader_marker = False\n"
         f"screenshot_path = r\"{screenshot_path}\"\n"
         "view_size = [1280, 720]\n"
         "\n"
-        "reader = OpenFOAMReader(FileName=case_path)\n"
-        "view = GetActiveViewOrCreate(\"RenderView\")\n"
-        "view.ViewSize = view_size\n"
-        "display = Show(reader, view)\n"
-        "display.Representation = \"Surface\"\n"
-        "view.ResetCamera()\n"
-        "SaveScreenshot(screenshot_path, view, ImageResolution=view_size)\n"
+        "if reader_path.is_dir():\n"
+        "    reader_path = reader_path / f\"{reader_path.name}.foam\"\n"
+        "    if not reader_path.exists():\n"
+        "        reader_path.touch()\n"
+        "        created_reader_marker = True\n"
+        "\n"
+        "try:\n"
+        "    reader = OpenFOAMReader(FileName=str(reader_path))\n"
+        "    view = GetActiveViewOrCreate(\"RenderView\")\n"
+        "    view.ViewSize = view_size\n"
+        "    display = Show(reader, view)\n"
+        "    display.Representation = \"Surface\"\n"
+        "    view.ResetCamera()\n"
+        "    Path(screenshot_path).parent.mkdir(parents=True, exist_ok=True)\n"
+        "    SaveScreenshot(screenshot_path, view, ImageResolution=view_size)\n"
+        "finally:\n"
+        "    if created_reader_marker and reader_path.exists():\n"
+        "        reader_path.unlink()\n"
     )
 
 
-def test_write_paraview_case_screenshot_script_uses_foam_marker_for_case_directory(
+def test_write_paraview_case_screenshot_script_uses_temporary_foam_reader_marker(
     paraview_tmp_path: Path,
 ) -> None:
     script_path = paraview_tmp_path / "screenshot.py"
@@ -70,8 +83,12 @@ def test_write_paraview_case_screenshot_script_uses_foam_marker_for_case_directo
     )
 
     marker_path = case_path / "cavity.foam"
-    assert marker_path.is_file()
-    assert f'case_path = r"{marker_path}"\n' in script_path.read_text(encoding="utf-8")
+    assert not marker_path.exists()
+    content = script_path.read_text(encoding="utf-8")
+    assert f'reader_path = Path(r"{case_path}")\n' in content
+    assert 'reader_path = reader_path / f"{reader_path.name}.foam"\n' in content
+    assert "reader = OpenFOAMReader(FileName=str(reader_path))\n" in content
+    assert "reader_path.unlink()\n" in content
 
 
 def test_run_paraview_script_invokes_command_with_script_and_writes_log(
@@ -245,7 +262,9 @@ def test_prepare_paraview_report_asset_uses_deterministic_report_paths(
     assert asset.log_path == paraview_tmp_path / "reports" / "logs" / "case-surface.log"
     assert asset.integration_only is True
     assert asset.script_path.is_file()
-    assert (case_path / "cavity.foam").is_file()
+    assert asset.screenshot_path.parent.is_dir()
+    assert asset.log_path.parent.is_dir()
+    assert not (case_path / "cavity.foam").exists()
 
 
 @pytest.mark.parametrize(
